@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Hacknet Infinite - PC Edition</title>
+<link rel="icon" type="image/png" href="favicon.png">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<div class="scanlines"></div>
+
+<!-- ============================================================
+     SETUP INICIAL
+     ============================================================ -->
+<div id="setup-overlay">
+    <div class="setup-title">HACKNET INFINITE</div>
+    <div class="setup-subtitle">// CONFIGURACIÓN INICIAL DE TU PC //</div>
+    <div class="setup-box">
+        <div class="setup-field">
+            <label>&gt; Nombre de usuario:</label>
+            <input type="text" id="setup-user" maxlength="14" autocomplete="off" spellcheck="false">
+        </div>
+        <div class="setup-field">
+            <label>&gt; Contraseña:</label>
+            <input type="text" id="setup-pass" maxlength="20" autocomplete="off" spellcheck="false">
+        </div>
+        <div class="setup-error" id="setup-error"></div>
+        <div class="setup-hint">Presiona ENTER para confirmar cada campo</div>
+    </div>
+</div>
+
+<!-- ============================================================
+     MARKET FORM
+     ============================================================ -->
+<div id="market-form-overlay">
+    <div class="browser-bar">
+        <span class="lock">🔒</span>
+        <span class="url">https://market.onion/login</span>
+        <span style="color:#00aaaa; font-size:0.7rem;">InfoMarket</span>
+    </div>
+    <div class="form-close" onclick="closeMarketForm()">[X] SALIR</div>
+    <div class="form-wrapper">
+        <div class="form-container" id="market-form-container">
+            <div class="form-title" id="market-form-title">Login</div>
+            <input type="text" class="form-field" id="market-input-user" placeholder="Usuario" autocomplete="off" spellcheck="false">
+            <input type="password" class="form-field" id="market-input-pass" placeholder="Contraseña" autocomplete="off" spellcheck="false">
+            <button class="form-btn" id="market-form-submit" onclick="submitMarketForm()">Sign In</button>
+            <div class="form-error" id="market-form-error"></div>
+            <div class="form-link" id="market-form-link">Don't have an account - <a onclick="switchMarketForm('register')">click here</a></div>
+        </div>
+        <div id="saved-key-card" onclick="loginWithSavedKey()">
+            <div class="key-icon"><span class="key-emoji">🔑</span> Key</div>
+            <div class="key-info">
+                <span class="key-label">Username:</span> <span class="key-value" id="saved-key-user">-</span><br>
+                <span class="key-label">Password:</span> <span class="key-value" id="saved-key-pass">-</span>
+            </div>
+            <div class="key-action">▸ Presiona para entrar</div>
+        </div>
+    </div>
+</div>
+<!-- ============================================================
+     MARKET WEB (DASHBOARD)
+     ============================================================ -->
+<div id="market-web-overlay">
+    <div class="browser-bar">
+        <span class="lock">🔒</span>
+        <span class="url" id="market-web-url">https://market.onion/dashboard</span>
+        <span style="color:#aa8844; font-size:0.7rem;">InfoMarket</span>
+    </div>
+    <div class="market-toolbar">
+        <div class="market-logo">◈ InfoMarket</div>
+        <div class="market-toolbar-spacer"></div>
+        <div class="market-balance">💰 <span id="market-web-balance">0</span> CR</div>
+        <div class="market-user" id="market-web-user">-</div>
+        <button class="market-btn market-btn-logout" onclick="closeMarketWeb()">[X] SALIR</button>
+    </div>
+    <div class="market-content" id="market-web-content"></div>
+</div>
+<!-- ============================================================
+     HACKNET FORM
+     ============================================================ -->
+<div id="hacknet-form-overlay">
+    <div class="browser-bar">
+        <span class="lock">🔒</span>
+        <span class="url">https://hacknet.onion/login</span>
+        <span style="color:#aa8844; font-size:0.7rem;">HackNet</span>
+    </div>
+    <div class="form-close" onclick="closeHacknetForm()">[X] SALIR</div>
+    <div class="form-wrapper">
+        <div class="form-container">
+            <div class="form-title" id="hacknet-form-title">Login</div>
+            <input type="text" class="form-field" id="hacknet-input-gomail" placeholder="Usuario de GoMail (obligatorio)" autocomplete="off" spellcheck="false" style="display:none;">
+            <input type="text" class="form-field" id="hacknet-input-user" placeholder="Usuario" autocomplete="off" spellcheck="false">
+            <input type="password" class="form-field" id="hacknet-input-pass" placeholder="Contraseña" autocomplete="off" spellcheck="false">
+            <button class="form-btn" id="hacknet-form-submit" onclick="submitHacknetForm()">Sign In</button>
+            <div class="form-error" id="hacknet-form-error"></div>
+            <div class="form-link" id="hacknet-form-link">Don't have an account - <a onclick="switchHacknetForm('register')">click here</a></div>
+        </div>
+        <div id="hacknet-saved-key-card" onclick="loginWithSavedHacknetKey()">
+            <div class="key-icon"><span class="key-emoji">🔑</span> Key</div>
+            <div class="key-info">
+                <span class="key-label">Username:</span> <span class="key-value" id="hacknet-saved-key-user">-</span><br>
+                <span class="key-label">Password:</span> <span class="key-value" id="hacknet-saved-key-pass">-</span>
+            </div>
+            <div class="key-action">▸ Presiona para entrar</div>
+        </div>
+    </div>
+</div>
+
+<!-- ============================================================
+     GOMAIL FORM
+     ============================================================ -->
+<div id="gomail-form-overlay">
+    <div class="browser-bar">
+        <span class="lock">🔒</span>
+        <span class="url">https://gomail.com/login</span>
+        <span style="color:#00aaaa; font-size:0.7rem;">GoMail</span>
+    </div>
+    <div class="form-close" onclick="closeGomailForm()">[X] SALIR</div>
+    <div class="form-wrapper">
+        <div class="form-container">
+            <div class="form-title" id="gomail-form-title">Login</div>
+            <input type="text" class="form-field" id="gomail-input-user" placeholder="Usuario" autocomplete="off" spellcheck="false">
+            <input type="password" class="form-field" id="gomail-input-pass" placeholder="Contraseña" autocomplete="off" spellcheck="false">
+            <button class="form-btn" id="gomail-form-submit" onclick="submitGomailForm()">Sign In</button>
+            <div class="form-error" id="gomail-form-error"></div>
+            <div class="form-link" id="gomail-form-link">Don't have an account - <a onclick="switchGomailForm('register')">click here</a></div>
+        </div>
+        <div id="gomail-saved-key-card" onclick="loginWithSavedGomailKey()">
+            <div class="key-icon"><span class="key-emoji">🔑</span> Key</div>
+            <div class="key-info">
+                <span class="key-label">Username:</span> <span class="key-value" id="gomail-saved-key-user">-</span><br>
+                <span class="key-label">Password:</span> <span class="key-value" id="gomail-saved-key-pass">-</span>
+            </div>
+            <div class="key-action">▸ Presiona para entrar</div>
+        </div>
+    </div>
+</div>
+
+<!-- ============================================================
+     GOMAIL WEBMAIL
+     ============================================================ -->
+<div id="gomail-web-overlay">
+    <div class="browser-bar">
+        <span class="lock">🔒</span>
+        <span class="url" id="gomail-web-url">https://gomail.com/inbox</span>
+        <span style="color:#00aaaa; font-size:0.7rem;">GoMail</span>
+    </div>
+    <div class="webmail-toolbar">
+        <button class="webmail-btn webmail-back" id="gomail-back-btn" onclick="gomailBackToInbox()" style="display:none;">← Volver</button>
+        <div class="webmail-toolbar-spacer"></div>
+        <span class="webmail-user" id="gomail-web-user">-</span>
+        <button class="webmail-btn webmail-logout" onclick="closeGomailWeb()">[X] SALIR</button>
+    </div>
+    <div class="webmail-content" id="gomail-web-content"></div>
+</div>
+
+<!-- ============================================================
+     CONNECT OVERLAY
+     ============================================================ -->
+<div id="connect-overlay">
+    <div class="connect-window">
+        <div class="connect-titlebar">
+            <span>◈ CONEXIÓN REMOTA :: <span id="connect-ip-display">0.0.0.0</span></span>
+            <span class="connect-close" onclick="cancelConnect()">[X]</span>
+        </div>
+        <div class="connect-body">
+            <div class="connect-info-panel">
+                <div class="connect-info-title">// ESTADO DEL SERVIDOR</div>
+                <div class="connect-info-row"><span class="lbl">IP:</span><span class="val" id="connect-info-ip">-</span></div>
+                <div class="connect-info-row"><span class="lbl">Seguridad:</span><span class="val" id="connect-info-sec">-</span></div>
+                <div class="connect-info-row"><span class="lbl">Rastreo:</span><span class="val" id="connect-info-trace">-</span></div>
+                <div class="connect-info-row"><span class="lbl">Puertos abiertos:</span><span class="val" id="connect-info-ports">-</span></div>
+            </div>
+            <div class="connect-form-panel">
+                <div class="connect-form-title">LOGIN <span class="connect-form-sub">// opcional</span></div>
+                <input type="text" class="connect-field" id="connect-input-user" placeholder="Usuario" autocomplete="off" spellcheck="false">
+                <input type="password" class="connect-field" id="connect-input-pass" placeholder="Contraseña" autocomplete="off" spellcheck="false">
+                <div class="connect-error" id="connect-error"></div>
+                <button class="connect-btn" onclick="submitConnectForm()">🔑 Iniciar sesión</button>
+            </div>
+            <div id="connect-key-card" onclick="loginWithConnectKey()">
+                <div class="key-icon">🔑 Key guardada</div>
+                <div class="key-info">
+                    <span class="key-label">Usuario:</span> <span class="key-value" id="connect-key-user">-</span><br>
+                    <span class="key-label">Password:</span> <span class="key-value" id="connect-key-pass">-</span>
+                </div>
+                <div class="key-action">▸ Presiona para entrar</div>
+            </div>
+        </div>
+        <div class="connect-footer">
+            <span class="connect-hint"></span>
+            <button class="connect-terminal-btn" onclick="openTerminalFromConnect()">▸ ABRIR TERMINAL</button>
+        </div>
+    </div>
+</div>
+
+<!-- ============================================================
+     TERMINAL BLANCA (FASE 1 del LAST CHANCE)
+     ============================================================ -->
+<div id="white-terminal-overlay">
+    <div class="wt-content">
+        <div class="wt-header">
+            <div class="wt-logo">[ PC RESET ]</div>
+            <div class="wt-time">SISTEMA REINICIADO</div>
+        </div>
+        <div class="wt-body" id="wt-body"></div>
+        <div class="wt-footer">
+            <button class="wt-btn" id="wt-action-btn" style="display:none;">▸ ÚLTIMA OPORTUNIDAD</button>
+        </div>
+    </div>
+</div>
+
+<!-- ============================================================
+     LAST CHANCE TIMER BAR
+     ============================================================ -->
+<div id="lastchance-bar" style="display:none;">
+    <div class="lc-label">⚠ RASTREO INVERSO</div>
+    <div class="lc-progress-container">
+        <div class="lc-progress-fill" id="lc-progress-fill"></div>
+    </div>
+    <div class="lc-time" id="lc-time">90s</div>
+</div>
+
+<!-- ============================================================
+     DEVTOOLS ALARM OVERLAY (se inyecta por JS, pero por las dudas)
+     ============================================================ -->
+<!-- (la inyecta main.js dinámicamente) -->
+
+<!-- ============================================================
+     TOP BAR
+     ============================================================ -->
+<div class="top-bar">
+    <span id="conn-status">DESCONECTADO</span>
+    <span id="trace-timer">RASTREO: --:--</span>
+</div>
+
+<!-- ============================================================
+     MAIN CONTENT
+     ============================================================ -->
+<div class="main-content">
+    <div class="center-panel">
+        <div id="terminal-output">
+            <span class="text-sys">Sistema iniciado. Bienvenido a Hacknet Infinite.</span><br>
+            <span class="text-sys">Escribe </span><span class="text-cmd">'help'</span><span class="text-sys"> para ver la lista de comandos.</span><br><br>
+        </div>
+        <div class="input-line">
+            <span id="prompt-symbol">user@local:~$</span>
+            <input type="text" id="terminal-input" autofocus autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
+            <div id="suggestion-box"></div>
+        </div>
+    </div>
+    
+    <div class="right-panel">
+        <div class="ram-header">RAM: <span id="ram-status">0.0 / 1.2 GB</span></div>
+        <div class="ram-bar-container"><div class="ram-bar-fill" id="ram-bar"></div></div>
+        
+        <div id="netmap-section" style="display:none;">
+            <div class="section-title">NetMap</div>
+            <div class="app-window">
+                <div class="app-header">
+                    <span>NetMap [0.5 GB] — arrastra para mover</span>
+                    <span class="close-btn" onclick="toggleNetmap()">[X]</span>
+                </div>
+                <div class="app-content">
+                    <canvas id="netmap-canvas" width="290" height="180"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <div id="wallbreaker-section" style="display:none; margin-bottom:8px; flex-shrink:0;">
+            <div class="section-title" style="color:#ff8833; border-bottom-color:#ff8833;">Wallbreaker [0.9 GB]</div>
+            <div class="app-window" style="border-color:#ff8833; box-shadow:0 0 10px rgba(255,136,51,0.25);">
+                <div class="app-header" style="background:#ff8833;">
+                    <span id="wallbreaker-header-text">wallbreaker.exe — FIREWALL ACTIVE</span>
+                    <span class="close-btn" onclick="closeWallbreakerApp()">[X]</span>
+                </div>
+                <div class="app-content" style="padding:3px; display:flex; justify-content:center;">
+                    <canvas id="wallbreaker-canvas" width="290" height="260"></canvas>
+                </div>
+            </div>
+        </div>
+        
+        <div id="processes-section">
+            <div class="section-title">Procesos Activos</div>
+            <div id="processes-list">
+                <div class="empty-state">(sin procesos activos)</div>
+            </div>
+            <div id="processes-pagination">
+                <button class="proc-page-btn" id="proc-prev-btn" onclick="changeProcessPage(-1)">◀</button>
+                <span id="proc-page-indicator">1 / 1</span>
+                <button class="proc-page-btn" id="proc-next-btn" onclick="changeProcessPage(1)">▶</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ============================================================
+     SCRIPTS — ORDEN IMPORTANTE
+     ============================================================ -->
+<script src="config.js"></script>
+<script src="data.js"></script> 
+<script src="state.js"></script>
+<script src="animations.js"></script>
+<script src="wallbreaker.js"></script>
+<script src="netmap.js"></script>
+<script src="processes.js"></script>
+<script src="market.js"></script>
+<script src="connect.js"></script>
+<script src="lastchance.js"></script>
+<script src="commands.js"></script>
+<script src="main.js"></script>
+</body>
+</html>
