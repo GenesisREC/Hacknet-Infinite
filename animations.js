@@ -3308,6 +3308,9 @@ function updateAnimSound(proc, toolName, progress, now) {
             case 'scp':
                 if (proc.isDownload) soundDownloadEngine(proc, progress, now);
                 break;
+case 'rm':
+    if (proc.isRm) soundDownloadEngine(proc, progress, now);
+    break;case 'rm':
             case 'unzip':
                 if (proc.isUnzip) soundUnzipEngine(proc, progress, now);
                 break;
@@ -3613,5 +3616,154 @@ function drawUnzipAnimation(proc, now) {
 
     ctx.textAlign = 'right';
     ctx.fillStyle = 'rgba(255, 170, 68, 0.7)';
+    ctx.fillText((proc.fileSizeKB || 0).toFixed(1) + ' KB', barX + barW, barY - 1);
+}
+// ============================================================
+// RM — Animación de borrado (mismo patrón que scp, sentido inverso)
+// ============================================================
+function createRmData(fileName, sizeKB) {
+    return {
+        fileName: fileName,
+        fileSizeKB: sizeKB,
+        shortName: (fileName || '').length > 14
+            ? fileName.substring(0, 13) + '…'
+            : (fileName || '')
+    };
+}
+
+function drawRmAnimation(proc, now) {
+    const c = document.getElementById('rm-canvas-' + proc.id);
+    if (!c) return;
+    const ctx = c.getContext('2d');
+    const W = c.width, H = c.height;
+
+    ctx.fillStyle = '#000';
+    ctx.fillRect(0, 0, W, H);
+
+    // Grid horizontal sutil
+    ctx.strokeStyle = 'rgba(0, 255, 0, 0.06)';
+    ctx.lineWidth = 1;
+    for (let y = 8; y < H - 20; y += 8) {
+        ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke();
+    }
+
+    const progress = Math.min(1, (proc.animatedElapsed || 0) / (proc.durationMs || 1));
+
+    // Nodos: FS → TRASH
+    const srcX = 40, srcY = H / 2 - 6;
+    const dstX = W - 40, dstY = H / 2 - 6;
+
+    // Caja FS
+    ctx.fillStyle = '#000';
+    ctx.fillRect(srcX - 22, srcY - 8, 44, 16);
+    ctx.strokeStyle = '#ff8844';
+    ctx.lineWidth = 1;
+    ctx.strokeRect(srcX - 22, srcY - 8, 44, 16);
+    ctx.fillStyle = '#ff8844';
+    ctx.font = 'bold 6px Consolas, monospace';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(proc.isRemote ? 'REMOTE' : 'LOCAL', srcX, srcY);
+
+    // Caja TRASH (pulsa al recibir)
+    const received = progress >= 0.85;
+    const pulse = received ? Math.min(1, (progress - 0.85) / 0.15) : 0;
+    ctx.fillStyle = '#000';
+    ctx.fillRect(dstX - 22, dstY - 8, 44, 16);
+    ctx.shadowBlur = pulse * 12;
+    ctx.shadowColor = '#33ff33';
+    ctx.strokeStyle = received ? '#33ff33' : 'rgba(51,255,51,0.65)';
+    ctx.strokeRect(dstX - 22, dstY - 8, 44, 16);
+    ctx.shadowBlur = 0;
+    ctx.fillStyle = received ? '#33ff33' : 'rgba(51,255,51,0.85)';
+    ctx.fillText('TRASH', dstX, dstY);
+
+    // Línea punteada
+    ctx.strokeStyle = 'rgba(51, 204, 255, 0.22)';
+    ctx.setLineDash([3, 3]);
+    ctx.beginPath();
+    ctx.moveTo(srcX + 22, srcY);
+    ctx.lineTo(dstX - 22, dstY);
+    ctx.stroke();
+    ctx.setLineDash([]);
+
+    // Paquete viajando (con wobble, igual que scp)
+    const packetPhase = Math.min(1, progress * 1.18);
+    if (packetPhase > 0 && packetPhase < 1) {
+        const px = srcX + 22 + (dstX - srcX - 44) * packetPhase;
+        const py = srcY + Math.sin(packetPhase * Math.PI * 2) * 3;
+
+        const fade = packetPhase > 0.9
+            ? (1 - packetPhase) * 10
+            : (packetPhase < 0.1 ? packetPhase * 10 : 1);
+        const alpha = Math.min(1, fade);
+
+        const boxW = 62;
+        const boxH = 11;
+
+        ctx.shadowBlur = 6;
+        ctx.shadowColor = '#33ccff';
+        ctx.strokeStyle = `rgba(51, 204, 255, ${alpha})`;
+        ctx.lineWidth = 1;
+        ctx.strokeRect(px - boxW / 2, py - boxH / 2, boxW, boxH);
+        ctx.shadowBlur = 0;
+
+        ctx.fillStyle = `rgba(0, 20, 30, ${alpha})`;
+        ctx.fillRect(px - boxW / 2, py - boxH / 2, boxW, boxH);
+
+        ctx.fillStyle = `rgba(200, 245, 255, ${alpha})`;
+        ctx.font = 'bold 6.5px Consolas, monospace';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(proc.rmData.shortName, px, py);
+    }
+
+    // Chispas radiales al llegar a TRASH
+    if (received) {
+        const expl = Math.min(1, (progress - 0.85) / 0.15);
+        const numSparks = 8;
+        for (let i = 0; i < numSparks; i++) {
+            const angle = (i / numSparks) * Math.PI * 2 + expl * 3;
+            const dist = expl * 20;
+            const sx = dstX + Math.cos(angle) * dist;
+            const sy = dstY + Math.sin(angle) * dist;
+            const alpha = 1 - expl;
+            ctx.fillStyle = `rgba(51, 255, 51, ${alpha})`;
+            ctx.shadowBlur = 6;
+            ctx.shadowColor = '#33ff33';
+            ctx.beginPath();
+            ctx.arc(sx, sy, 1.6 * alpha, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.shadowBlur = 0;
+        }
+    }
+
+    // Nombre completo del archivo (arriba)
+    ctx.fillStyle = 'rgba(180, 220, 220, 0.7)';
+    ctx.font = '7px Consolas, monospace';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'top';
+    const name = (proc.fileName || '').length > 34
+        ? proc.fileName.substring(0, 32) + '...'
+        : (proc.fileName || '');
+    ctx.fillText(name, W / 2, 3);
+
+    // Barra de progreso
+    const barX = 20, barW = W - 40, barY = H - 14, barH = 6;
+    ctx.fillStyle = '#000';
+    ctx.fillRect(barX, barY, barW, barH);
+    ctx.strokeStyle = 'rgba(51, 204, 255, 0.4)';
+    ctx.lineWidth = 1;
+    ctx.strokeRect(barX + 0.5, barY + 0.5, barW - 1, barH - 1);
+    ctx.fillStyle = '#33ccff';
+    ctx.fillRect(barX + 1, barY + 1, (barW - 2) * progress, barH - 2);
+
+    ctx.font = 'bold 7px Consolas, monospace';
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'bottom';
+    ctx.fillStyle = '#33ccff';
+    ctx.fillText(Math.floor(progress * 100) + '%', barX, barY - 1);
+    ctx.textAlign = 'right';
+    ctx.fillStyle = 'rgba(51, 204, 255, 0.7)';
     ctx.fillText((proc.fileSizeKB || 0).toFixed(1) + ' KB', barX + barW, barY - 1);
 }

@@ -326,6 +326,9 @@ function sellMarketFile(fileName) {
     if (typeof autoAdvanceMissionsOnEvent === 'function') {
         autoAdvanceMissionsOnEvent({ type: 'sell', amount: value });
     }
+if (typeof newsOnMarketSale === 'function') {
+    newsOnMarketSale(fileName, value);
+}
     updateUI();
     saveGame();
     renderMarketWeb();

@@ -1,5 +1,4 @@
 const gameState = {
-    probeUnlocked: false,
     localUser: 'user',
     localPass: '1234',
     setupComplete: false,
@@ -29,7 +28,6 @@ const gameState = {
     marketSession: false,
     inMarket: false,
     connectOverlayOpen: false,
-    tutorialOpen: false,
     pendingReset: false,
     marketFormMode: 'login',
     hacknetFormMode: 'login',
@@ -38,10 +36,20 @@ const gameState = {
     wallbreakerApp: null,
     gamePhase: 'normal',
     lastChanceTimer: null,
-    lastChanceEventTimer: null, 
+    lastChanceEventTimer: null,
     lastChanceTimeLeft: 0,
     lastChanceServer: null,
     lastChanceTargetPath: null,
+
+    // ==== TUTORIAL ====
+    tutorialOpen: false,
+
+    // ==== NEWS ====
+    newsOpen: false,
+    inNews: false,
+    newsTab: 'latest',
+    newsLog: [],
+    newsCounter: 0,
 
     // ==== MISIONES ====
     missionAccount: null,
@@ -361,6 +369,7 @@ Ataque:
 Misiones:
   connect hacknet.onion    - Tablón de contratos
   connect gomail.com       - Correo personal
+  connect news.com         - Portal de noticias
   missions                 - Ver misiones activas
   missions available       - Ver disponibles
   missions accept [id]     - Aceptar
@@ -396,6 +405,7 @@ Servidores virtuales:
   hacknet.onion - Tablón de contratos
   gomail.com    - Correo
   market.onion  - InfoMarket
+  news.com      - Portal de noticias
   probe.com     - Servidor de pruebas`, 2),
         '/home/user/hackeo.txt': makeFile(
 `// HACKEAR UN SERVER //
@@ -523,24 +533,22 @@ function generateServerFiles(tier, profile, ports) {
     const files = [];
 
     list.forEach(name => {
-    const template = SERVER_FILE_POOL.find(f => f.name === name);
-    if (template) {
-        const scaledSize = scaleFileSize(template.size, tier, template.category);
-        const value = computeFileValue(template.category, scaledSize, tier);
-        // Si el template define un generador procedural, lo llamamos.
-        // Si no, usamos el content estático (o null si es binario).
-        const finalContent = (typeof template.gen === 'function')
-            ? template.gen(tier)
-            : template.content;
-        files.push({
-            name: template.name,
-            content: finalContent,
-            size: scaledSize,
-            category: template.category,
-            value: value
-        });
-    }
-});
+        const template = SERVER_FILE_POOL.find(f => f.name === name);
+        if (template) {
+            const scaledSize = scaleFileSize(template.size, tier, template.category);
+            const value = computeFileValue(template.category, scaledSize, tier);
+            const finalContent = (typeof template.gen === 'function')
+                ? template.gen(tier)
+                : template.content;
+            files.push({
+                name: template.name,
+                content: finalContent,
+                size: scaledSize,
+                category: template.category,
+                value: value
+            });
+        }
+    });
 
     let zipChance = 0;
     if (tier >= 2 && tier <= 4) zipChance = 0.20;
@@ -905,7 +913,6 @@ function createServerObject(ip, netIndex, tier, opts) {
     const profile = getCompatibleProfile(tier);
     const ports = generatePortsForServer(tier, profile);
 
-    // Cap de versión: ninguna misión te manda a un server que no podés crackear
     if (opts.maxPortVersion !== undefined) {
         const maxV = parseFloat(opts.maxPortVersion);
         if (!isNaN(maxV)) {
@@ -1363,7 +1370,7 @@ function saveGame() {
     if (gameState.localUser === undefined) return;
     try {
         const save = {
-            version: 3,
+            version: SAVE_VERSION,
             localUser: gameState.localUser,
             localPass: gameState.localPass,
             servers: gameState.servers,
@@ -1416,18 +1423,53 @@ function saveGame() {
             missionsActive: gameState.missionsActive,
             missionsCompleted: gameState.missionsCompleted.slice(-50),
             lastMissionSpawn: gameState.lastMissionSpawn,
-            missionCounter: gameState.missionCounter
+            missionCounter: gameState.missionCounter,
+            newsLog: gameState.newsLog || [],
+            newsCounter: gameState.newsCounter || 0
         };
         localStorage.setItem(SAVE_KEY, JSON.stringify(save));
+	try { SAVE_KEY_LEGACY.forEach(k => localStorage.removeItem(k)); } catch(e) {}
     } catch(e) { console.warn('No se pudo guardar la sesión:', e); }
 }
 
-function loadGame() {
-    const raw = localStorage.getItem(SAVE_KEY);
-    if (!raw) return false;
+// ============================================================
+// DETECCIÓN DE SAVES ANTIGUOS (para migración)
+// ============================================================
+function getRawSave() {
+    let raw = localStorage.getItem(SAVE_KEY);
+    if (raw) return { raw, key: SAVE_KEY };
+    for (const k of SAVE_KEY_LEGACY) {
+        raw = localStorage.getItem(k);
+        if (raw) return { raw, key: k };
+    }
+    return null;
+}
+
+function peekSaveInfo() {
+    const found = getRawSave();
+    if (!found) return { exists: false };
     try {
-        const save = JSON.parse(raw);
-        if (!save || save.version !== 3) return false;
+        const save = JSON.parse(found.raw);
+        if (!save || typeof save !== 'object') return { exists: true, corrupted: true, key: found.key };
+        return {
+            exists: true,
+            key: found.key,
+            version: save.version || 0,
+            current: save.version === SAVE_VERSION,
+            outdated: (save.version || 0) > 0 && (save.version || 0) < SAVE_VERSION,
+            save
+        };
+    } catch(e) {
+        return { exists: true, corrupted: true, key: found.key };
+    }
+}
+
+function loadGame() {
+    const found = getRawSave();
+if (!found) return false;
+try {
+    const save = JSON.parse(found.raw);
+    if (!save || save.version !== SAVE_VERSION) return false;
         gameState.localUser = save.localUser || 'user';
         gameState.localPass = save.localPass || '1234';
         gameState.setupComplete = true;
@@ -1480,6 +1522,12 @@ function loadGame() {
         gameState.gomailSession = false;
         gameState.inHacknet = false;
         gameState.inGomail = false;
+
+        gameState.newsLog = save.newsLog || [];
+        gameState.newsCounter = save.newsCounter || 0;
+        gameState.inNews = false;
+        gameState.newsOpen = false;
+        gameState.newsTab = 'latest';
 
         gameState.servers.forEach((s, idx) => {
             if (s.isProbeServer) return;
@@ -1607,14 +1655,19 @@ function loadGame() {
         output.innerHTML = `<span class="text-info">[✓] Sesión restaurada. Bienvenido de nuevo, ${gameState.localUser}.</span><br><br>`;
 
         if (gameState.inMarket) {
-    if (gameState.marketSession) openMarketWeb();
-    else setTimeout(() => { openMarketForm(); }, 300);
-}
+            if (gameState.marketSession) openMarketWeb();
+            else setTimeout(() => { openMarketForm(); }, 300);
+        }
         return true;
     } catch(e) { console.error('Error al cargar la sesión:', e); return false; }
 }
 
-function clearSave() { try { localStorage.removeItem(SAVE_KEY); } catch(e) {} }
+function clearSave() {
+    try {
+        localStorage.removeItem(SAVE_KEY);
+        SAVE_KEY_LEGACY.forEach(k => localStorage.removeItem(k));
+    } catch(e) {}
+}
 
 // ============================================================
 // SNAPSHOT PRE-RASTREO (para restaurar al perder)

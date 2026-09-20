@@ -62,6 +62,7 @@ function layoutNodes() {
     const gomailNode = { id: 'gomail', ip: 'gomail.com', baseX: -90, baseY: -70, x: 0, y: 0, w: 60, h: 16, clickable: true, isGomail: true, fixed: false, floatPhaseX: 0.5, floatPhaseY: 1.5, floatAmpX: 2, floatAmpY: 2, floatSpeed: 0.4 };
     const marketNode = { id: 'market', ip: 'market.onion', baseX: 90, baseY: -70, x: 0, y: 0, w: 60, h: 16, clickable: true, isMarket: true, fixed: false, floatPhaseX: 2.1, floatPhaseY: 0.7, floatAmpX: 2, floatAmpY: 2, floatSpeed: 0.5 };
     const hacknetNode = { id: 'hacknet', ip: 'hacknet.onion', baseX: 0, baseY: -140, x: 0, y: 0, w: 70, h: 16, clickable: true, isHacknet: true, fixed: false, floatPhaseX: 1.2, floatPhaseY: 2.8, floatAmpX: 2, floatAmpY: 2, floatSpeed: 0.45 };
+    const newsNode = { id: 'news', ip: 'news.com', baseX: -140, baseY: 20, x: 0, y: 0, w: 60, h: 16, clickable: true, isNews: true, fixed: false, floatPhaseX: 1.9, floatPhaseY: 0.3, floatAmpX: 2, floatAmpY: 2, floatSpeed: 0.38 };
 
     const discoveredServers = gameState.servers.filter(s => s.discovered);
     const serverNodes = [];
@@ -86,7 +87,7 @@ function layoutNodes() {
 if (gameState.gamePhase === 'last-chance') {
     allNodes = [playerNode, ...serverNodes];
 } else {
-    allNodes = [playerNode, gomailNode, marketNode, hacknetNode, ...serverNodes];
+    allNodes = [playerNode, gomailNode, marketNode, hacknetNode, newsNode, ...serverNodes];
 }
     resolveNodeOverlaps(allNodes, 70);
 
@@ -194,9 +195,10 @@ function drawNetmap() {
     const isLastChance = gameState.gamePhase === 'last-chance';
     const player = nodes.find(n => n.isPlayer) || nodes[0];
     const gomail = isLastChance ? null : nodes.find(n => n.isGomail);
-    const market = isLastChance ? null : nodes.find(n => n.isMarket);
-    const hacknet = isLastChance ? null : nodes.find(n => n.isHacknet);
-    const servers = gameState.netmapServerNodes;
+const market = isLastChance ? null : nodes.find(n => n.isMarket);
+const hacknet = isLastChance ? null : nodes.find(n => n.isHacknet);
+const news = isLastChance ? null : nodes.find(n => n.isNews);
+const servers = gameState.netmapServerNodes;
 
     ctx.lineWidth = 0.8 / netmapZoom;
 
@@ -215,7 +217,11 @@ function drawNetmap() {
         ctx.strokeStyle = 'rgba(255, 170, 68, 0.35)';
         ctx.beginPath(); ctx.moveTo(player.x, player.y); ctx.lineTo(hacknet.x, hacknet.y); ctx.stroke();
     }
-
+	
+if (news) {
+    ctx.strokeStyle = 'rgba(68, 221, 255, 0.35)';
+    ctx.beginPath(); ctx.moveTo(player.x, player.y); ctx.lineTo(news.x, news.y); ctx.stroke();
+}
     // Conexiones player → servers
     servers.forEach(s => {
         ctx.beginPath(); ctx.moveTo(player.x, player.y); ctx.lineTo(s.x, s.y);
@@ -225,11 +231,11 @@ function drawNetmap() {
         ctx.stroke();
     });
 
-    drawNodeOrb(player.x, player.y, '#33ccff', '127.0.0.1', { radius: 7, glow: true, active: true });
-    if (gomail) drawNodeOrb(gomail.x, gomail.y, '#ffcc00', 'gomail.com', { radius: 6, glow: false, active: true });
-    if (market) drawNodeOrb(market.x, market.y, '#ffcc00', 'market.onion', { radius: 6, glow: false, active: true });
-    if (hacknet) drawNodeOrb(hacknet.x, hacknet.y, '#ffaa44', 'hacknet.onion', { radius: 6, glow: true, active: true });
-
+    drawNodeOrb(player.x, player.y, '#33ccff', '127.0.0.1', { radius: 9, glow: true, active: true });
+    if (gomail) drawNodeOrb(gomail.x, gomail.y, '#ffcc00', 'gomail.com', { radius: 8, glow: true, active: true });
+    if (market) drawNodeOrb(market.x, market.y, '#ffcc00', 'market.onion', { radius: 8, glow: true, active: true });
+    if (hacknet) drawNodeOrb(hacknet.x, hacknet.y, '#ffaa44', 'hacknet.onion', { radius: 8, glow: true, active: true });
+    if (news) drawNodeOrb(news.x, news.y, '#44ddff', 'news.com', { radius: 8, glow: true, active: true });
     servers.forEach(s => {
         let color;
         if (s.server.pinned) color = '#ffdd44';
@@ -432,6 +438,7 @@ function handleNetmapClick(e) {
             if (node.isMarket) input.value = 'connect market.onion';
             else if (node.isGomail) input.value = 'connect gomail.com';
             else if (node.isHacknet) input.value = 'connect hacknet.onion';
+	    else if (node.isNews) input.value = 'connect news.com';
             else input.value = `connect ${node.ip}`;
             input.focus();
             setTimeout(() => input.setSelectionRange(input.value.length, input.value.length), 0);

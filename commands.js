@@ -117,19 +117,31 @@ async function deleteFilesSequentially(filesToDelete) {
     gameState.isDeleting = true;
     output.innerHTML += `<span class="text-warning">[!] Iniciando borrado... El rastreo continúa.</span><br>`;
     output.scrollTop = output.scrollHeight;
+
     for (const fileInfo of filesToDelete) {
         if (gameState.isGameOver) break;
-        const deleteTimeMs = Math.max(500, Math.min(fileInfo.size * 250, 5000));
+
+        // Duración proporcional al tamaño (mínimo 600ms, máximo 4000ms)
+        const deleteTimeMs = Math.max(600, Math.min(fileInfo.size * 250, 4000));
         const deleteTimeSec = (deleteTimeMs / 1000).toFixed(1);
+
         output.innerHTML += `<span class="text-muted">→ Borrando ${fileInfo.name} (${formatSize(fileInfo.size)})... ${deleteTimeSec}s</span><br>`;
         output.scrollTop = output.scrollHeight;
-        await sleep(deleteTimeMs);
+
+        // Lanzar proceso visible (con su animación)
+        await launchRmProcess(fileInfo, deleteTimeMs);
+
         if (gameState.isGameOver) break;
+
+        // Ejecutar el borrado real del FS
         const fs = fileInfo.isRemote ? remoteFS : localFS;
         delete fs[fileInfo.path];
         const parentDir = fileInfo.path.substring(0, fileInfo.path.lastIndexOf('/')) || '/';
-        if (fs[parentDir]) fs[parentDir].children = fs[parentDir].children.filter(c => c !== fileInfo.name);
+        if (fs[parentDir]) {
+            fs[parentDir].children = fs[parentDir].children.filter(c => c !== fileInfo.name);
+        }
         output.innerHTML += `<span class="text-success">✓ ${fileInfo.name} eliminado</span><br>`;
+
         // Hook: victoria de last-chance
         if (typeof checkLastChanceFileDeleted === 'function') {
             if (checkLastChanceFileDeleted(fileInfo.path)) {
@@ -137,15 +149,22 @@ async function deleteFilesSequentially(filesToDelete) {
                 return;
             }
         }
-        output.scrollTop = output.scrollHeight;
+
+        // Hook: log de rastreo borrado
         if (fileInfo.isTraceLog && gameState.isConnected) {
             stopTrace();
             if (gameState.currentServer) gameState.currentServer.traceLogPath = null;
             output.innerHTML += `<div class="msg-box"><span class="text-success">[✓] Log de conexión eliminado. Rastreo detenido.</span></div>`;
             output.scrollTop = output.scrollHeight;
             autoAdvanceMissionsOnEvent({ type: 'log_deleted', serverIP: gameState.currentIP });
+            if (typeof newsOnLogWiped === 'function' && gameState.currentIP) {
+                newsOnLogWiped(gameState.currentIP);
+            }
         }
+
+        output.scrollTop = output.scrollHeight;
     }
+
     gameState.isDeleting = false;
     if (!gameState.isGameOver) { input.disabled = false; input.focus(); }
     output.scrollTop = output.scrollHeight;
@@ -253,21 +272,27 @@ function handleHacknetCommand(cmd) {
     if (cmd.trim() !== '') { commandHistory.push(cmd); historyIndex = commandHistory.length; }
 
     switch (action) {
-                case 'help': {
-            let html = '<div class="msg-box" style="border-color:#ffaa44;">';
-            html += '<div style="color:#ffaa44; font-weight:bold; margin-bottom:8px;">HACKNET.ONION — Comandos</div>';
-            html += '<table class="help-table">';
-            html += '<tr><td>missions</td><td>Ver contratos disponibles</td></tr>';
-            html += '<tr><td>accept [ID]</td><td>Aceptar contrato</td></tr>';
-            html += '<tr><td>active</td><td>Ver contratos activos</td></tr>';
-            html += '<tr><td>claim [ID]</td><td>Reclamar recompensa</td></tr>';
-            html += '<tr><td>abandon [ID]</td><td>Abandonar contrato</td></tr>';
-            html += '<tr><td>wallet</td><td>Ver saldo</td></tr>';
-            html += '<tr><td>exit</td><td>Salir de HackNet</td></tr>';
-            html += '</table></div>';
-            output.innerHTML += html;
-            break;
-        }
+                case 'help':
+    output.innerHTML += `<div class="msg-box">
+        <div class="text-success" style="margin-bottom:6px;">Comandos:</div>
+        <table class="help-table">
+            <tr><td>ls / cd / cat / rm / cp / mv</td><td>Navegación de archivos</td></tr>
+            <tr><td>scan [IP]</td><td>Escanear una IP puntual (misiones)</td></tr>
+            <tr><td>netmap / netmap scan</td><td>Mapa de red / escaneo</td></tr>
+            <tr><td>connect [IP]</td><td>Conectar</td></tr>
+            <tr><td>connect hacknet.onion</td><td>Tablón de contratos</td></tr>
+            <tr><td>connect gomail.com</td><td>Correo</td></tr>
+            <tr><td>connect market.onion</td><td>InfoMarket</td></tr>
+            <tr><td>connect probe.com</td><td>Servidor de pruebas</td></tr>
+            <tr><td>disconnect</td><td>Desconectar</td></tr>
+            <tr><td>probe / run [exe] [puerto]</td><td>Ataque</td></tr>
+            <tr><td>scp / unzip / porthack</td><td>Descarga / Zip / Acceso</td></tr>
+            <tr><td>wallbreaker</td><td>App firewall</td></tr>
+            <tr><td>hardware / tools / ps</td><td>Info</td></tr>
+            <tr><td>reset / clearsave</td><td>Reiniciar / Borrar</td></tr>
+        </table>
+    </div>`;
+    break;
 
                 case 'missions': {
             if (!gameState.hacknetSession) { output.innerHTML += `<span class="text-error">Iniciá sesión primero.</span><br>`; break; }
@@ -532,6 +557,7 @@ function handleDebugCommand(args) {
 function handleCommand(cmd) {
     if (gameState.isDeleting) return;
     const trimmed = cmd.trim();
+    if (gameState.inNews) { return; }
 	    // En modo last-chance, solo comandos de hackeo
     if (gameState.gamePhase === 'last-chance') {
         const actionLC = trimmed.split(' ')[0].toLowerCase();
@@ -728,12 +754,16 @@ function handleCommand(cmd) {
             }
             const _server = srv, _tier = srv.tier, _hasTrace = srv.hasTrace, _dur = result.duration, _ip = srv.ip;
             setTimeout(() => {
-                if (gameState.currentServer === _server && _server.accessed) {
-                    autoAdvanceMissionsOnEvent({ type: 'hack', tier: _tier, serverIP: _ip });
-                    if (!_hasTrace) autoAdvanceMissionsOnEvent({ type: 'stealth_hack', tier: _tier, serverIP: _ip });
-                    if (_server._traceTriggered && !_server.traceLogPath) autoAdvanceMissionsOnEvent({ type: 'ghost_hack', tier: _tier, serverIP: _ip });
-                }
-            }, _dur + 1000);
+    if (gameState.currentServer === _server && _server.accessed) {
+        autoAdvanceMissionsOnEvent({ type: 'hack', tier: _tier, serverIP: _ip });
+        if (!_hasTrace) autoAdvanceMissionsOnEvent({ type: 'stealth_hack', tier: _tier, serverIP: _ip });
+        if (_server._traceTriggered && !_server.traceLogPath) autoAdvanceMissionsOnEvent({ type: 'ghost_hack', tier: _tier, serverIP: _ip });
+        // NUEVO: noticia
+        if (typeof newsOnServerHacked === 'function' && !_server.isProbeServer && !_server.isLastChanceServer) {
+            newsOnServerHacked(_server);
+        }
+    }
+}, _dur + 1000);
             break;
         }
 
@@ -853,6 +883,12 @@ function handleCommand(cmd) {
         case 'connect': {
             if (!args[1]) { output.innerHTML += `<span class="text-error">Especificá IP o dirección.</span><br>`; break; }
             const target = args[1].toLowerCase();
+	    if (target === 'news.com' || target === 'news') {
+    		output.innerHTML += `<span class="text-info">[~] Conectando a news.com...</span><br>`;
+    		setTimeout(() => openNewsWeb(), 250);
+    		saveGame();
+   		 break;
+		}
             if (target === 'hacknet.onion' || target === 'hacknet' || target === 'hn') {
                 output.innerHTML += `<span class="text-gold">[~] Conectando a HackNet.onion...</span><br>`;
                 output.innerHTML += `<span class="text-muted">[~] Túnel cifrado establecido.</span><br><br>`;
@@ -1154,8 +1190,15 @@ function handleCommand(cmd) {
             output.innerHTML += `<span class="text-info">[↓] Descarga: ${finalName} (${sizeKB.toFixed(1)} KB · ${ramCost.toFixed(2)} GB)</span><br>`;
             output.scrollTop = output.scrollHeight;
             launchDownload(proc).then(() => {
-                autoAdvanceMissionsOnEvent({ type: 'download', fileName, tier: serverTierAtStart, serverIP: serverIPAtStart });
-            });
+    autoAdvanceMissionsOnEvent({ type: 'download', fileName, tier: serverTierAtStart, serverIP: serverIPAtStart });
+    const sourceFile = remoteFS ? remoteFS[remoteFilePath] : null;
+    const cat = sourceFile && sourceFile.category ? sourceFile.category : null;
+    if (typeof newsOnFinancialLeak === 'function' && cat === 'financiero') {
+        newsOnFinancialLeak(fileName, serverIPAtStart);
+    } else if (typeof newsOnPersonalLeak === 'function' && cat === 'personal') {
+        newsOnPersonalLeak(fileName, serverIPAtStart);
+    }
+});
             break;
         }
 
@@ -1194,6 +1237,7 @@ function handleCommand(cmd) {
                     lc += `<div>&nbsp;&nbsp;<span class="text-gold">hacknet.onion</span></div>`;
                     lc += `<div>&nbsp;&nbsp;<span class="text-info">gomail.com</span></div>`;
                     lc += `<div>&nbsp;&nbsp;<span class="text-gold">market.onion</span></div>`;
+                    lc += `<div>&nbsp;&nbsp;<span class="text-info">news.com</span></div>`;
                     discovered.forEach(s => {
                         const traceInfo = s.hasTrace ? '<span class="text-error">[RASTREO]</span>' : '';
                         const pinInfo = s.pinned ? ' <span class="text-gold">📌</span>' : '';
@@ -1227,19 +1271,24 @@ function handleCommand(cmd) {
             break;
 
         case 'trace-speed': {
-            if (gameState.isConnected) {
-                output.innerHTML += `<span class="text-error">[✗] No disponible conectado.</span><br>`;
-                break;
-            }
-            const mult = parseInt(args[1]);
-            if (isNaN(mult) || mult < 1 || mult > 50) {
-                output.innerHTML += `<span class="text-warning">Uso: trace-speed [1-50]</span><br>`;
-                break;
-            }
-            gameState.traceSpeedMult = mult;
-            output.innerHTML += `<span class="text-success">[✓] Velocidad: ×${mult}</span><br>`;
-            break;
-        }
+    // Solo disponible si el jugador desbloqueó el modo pruebas en probe.com
+    if (!gameState.probeUnlocked) {
+        output.innerHTML += `<span class="text-error">Comando no reconocido: trace-speed</span><br>`;
+        break;
+    }
+    if (gameState.isConnected) {
+        output.innerHTML += `<span class="text-error">[✗] No disponible conectado.</span><br>`;
+        break;
+    }
+    const mult = parseInt(args[1]);
+    if (isNaN(mult) || mult < 1 || mult > 50) {
+        output.innerHTML += `<span class="text-warning">Uso: trace-speed [1-50]</span><br>`;
+        break;
+    }
+    gameState.traceSpeedMult = mult;
+    output.innerHTML += `<span class="text-success">[✓] Velocidad: ×${mult}</span><br>`;
+    break;
+}
 
         case 'clear': output.innerHTML = ''; break;
         case 'clearsave':

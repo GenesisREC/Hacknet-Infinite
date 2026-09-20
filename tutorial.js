@@ -438,7 +438,7 @@ function closeTutorial() {
         gameState.tutorialOpen = false;
         tutorialPhase = 'idle';
         try { localStorage.setItem(TUTORIAL_SEEN_KEY, '1'); } catch(e) {}
-                setTimeout(() => {
+        setTimeout(() => {
             const setupOv = document.getElementById('setup-overlay');
             if (setupOv && setupOv.style.display === 'flex') {
                 const su = document.getElementById('setup-user');
@@ -446,6 +446,10 @@ function closeTutorial() {
             }
             if (typeof input !== 'undefined' && input && !input.disabled) {
                 input.focus();
+            }
+            // NUEVO: chequear notificación de update al cerrar el tutorial
+            if (typeof maybeShowUpdateNotification === 'function') {
+                maybeShowUpdateNotification();
             }
         }, 60);
     };

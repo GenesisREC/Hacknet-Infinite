@@ -2220,3 +2220,549 @@ body.ui-fade-in .right-panel { animation-delay: 0.18s; }
     from { opacity: 0; transform: translateY(12px); }
     to   { opacity: 1; transform: translateY(0); }
 }
+/* ============================================================
+   NEWS.COM OVERLAY
+   ============================================================ */
+#news-web-overlay {
+    position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+    background: #0a0e14; display: none; flex-direction: column;
+    z-index: 1900; font-family: 'Consolas', 'Courier New', monospace;
+    color: #e8eef5;
+}
+#news-web-overlay .browser-bar {
+    background: #0f141c; border-bottom: 1px solid #44ddff;
+    padding: 8px 15px; font-size: 0.78rem;
+    display: flex; align-items: center; gap: 10px; flex-shrink: 0;
+    color: #44ddff;
+}
+#news-web-overlay .browser-bar .url {
+    background: #000; border: 1px solid #44ddff;
+    padding: 3px 10px; color: #44ddff; flex: 1;
+    font-size: 0.75rem; letter-spacing: 1px;
+}
+#news-web-overlay .browser-bar .lock { color: #00ffaa; font-weight: bold; }
+
+.news-toolbar {
+    background: #121821;
+    border-bottom: 1px solid #44ddff;
+    padding: 14px 28px;
+    display: flex;
+    align-items: center;
+    gap: 24px;
+    flex-shrink: 0;
+}
+.news-logo {
+    font-size: 1.4rem;
+    font-weight: bold;
+    letter-spacing: 3px;
+    color: #44ddff;
+    text-shadow: 0 0 12px rgba(68, 221, 255, 0.5);
+    flex-shrink: 0;
+}
+.news-logo span { color: #e8eef5; font-weight: normal; }
+.news-tabs {
+    display: flex;
+    gap: 4px;
+    flex-shrink: 0;
+}
+.news-tab {
+    background: transparent;
+    border: 1px solid rgba(68, 221, 255, 0.3);
+    color: #8899aa;
+    padding: 8px 18px;
+    font-family: inherit;
+    font-size: 0.85rem;
+    font-weight: bold;
+    letter-spacing: 1.5px;
+    cursor: pointer;
+    transition: all 0.15s;
+}
+.news-tab:hover {
+    color: #44ddff;
+    border-color: #44ddff;
+}
+.news-tab.active {
+    background: #44ddff;
+    color: #0a0e14;
+    border-color: #44ddff;
+}
+.news-toolbar-spacer { flex: 1; }
+.news-btn {
+    background: transparent;
+    border: 1px solid #44ddff;
+    color: #44ddff;
+    padding: 6px 14px;
+    font-family: inherit;
+    font-size: 0.82rem;
+    font-weight: bold;
+    letter-spacing: 1px;
+    cursor: pointer;
+    transition: all 0.15s;
+}
+.news-btn:hover { background: #44ddff; color: #0a0e14; }
+.news-btn-logout {
+    border-color: #ff5577;
+    color: #ff5577;
+}
+.news-btn-logout:hover { background: #ff5577; color: #0a0e14; }
+
+.news-content {
+    flex: 1;
+    overflow-y: auto;
+    padding: 28px 40px;
+    background: #0a0e14;
+}
+
+/* ==== NEWS FEED ==== */
+.news-hero {
+    background: linear-gradient(135deg, #121821 0%, #0a0e14 100%);
+    border-left: 4px solid #44ddff;
+    padding: 24px 30px;
+    margin-bottom: 26px;
+}
+.news-hero-title {
+    font-size: 1.9rem;
+    font-weight: bold;
+    color: #e8eef5;
+    letter-spacing: 1px;
+    margin-bottom: 8px;
+    line-height: 1.2;
+}
+.news-hero-sub {
+    color: #8899aa;
+    font-size: 0.9rem;
+    letter-spacing: 1px;
+}
+.news-hero-counter {
+    display: inline-block;
+    background: #44ddff;
+    color: #0a0e14;
+    padding: 2px 10px;
+    font-weight: bold;
+    font-size: 0.75rem;
+    letter-spacing: 1px;
+    margin-left: 10px;
+    vertical-align: middle;
+}
+
+.news-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+.news-item {
+    display: flex;
+    gap: 18px;
+    padding: 16px 22px;
+    background: #121821;
+    border-left: 3px solid rgba(68, 221, 255, 0.4);
+    transition: border-color 0.15s, transform 0.1s;
+}
+.news-item:hover {
+    border-left-color: #44ddff;
+    transform: translateX(2px);
+}
+.news-item-time {
+    color: #556677;
+    font-size: 0.78rem;
+    letter-spacing: 1px;
+    flex-shrink: 0;
+    min-width: 90px;
+    padding-top: 2px;
+}
+.news-item-body { flex: 1; }
+.news-item-category {
+    display: inline-block;
+    font-size: 0.68rem;
+    font-weight: bold;
+    letter-spacing: 2px;
+    padding: 2px 8px;
+    margin-bottom: 6px;
+    text-transform: uppercase;
+}
+.news-cat-cyber    { background: rgba(68, 221, 255, 0.15); color: #44ddff; }
+.news-cat-leak     { background: rgba(255, 68, 119, 0.15); color: #ff5577; }
+.news-cat-market   { background: rgba(255, 204, 0, 0.15);  color: #ffcc00; }
+.news-cat-ghost    { background: rgba(160, 68, 255, 0.15); color: #a044ff; }
+.news-cat-info     { background: rgba(136, 153, 170, 0.15); color: #8899aa; }
+
+.news-item-title {
+    color: #e8eef5;
+    font-size: 1rem;
+    font-weight: bold;
+    margin-bottom: 4px;
+    line-height: 1.35;
+}
+.news-item-text {
+    color: #8899aa;
+    font-size: 0.85rem;
+    line-height: 1.5;
+}
+
+.news-empty {
+    text-align: center;
+    padding: 80px 20px;
+    color: #556677;
+    border: 1px dashed rgba(68, 221, 255, 0.2);
+    font-size: 0.92rem;
+    letter-spacing: 1px;
+    line-height: 1.7;
+}
+.news-empty-icon {
+    font-size: 3rem;
+    margin-bottom: 14px;
+    opacity: 0.5;
+}
+
+/* ==== UPDATES ==== */
+.updates-list {
+    display: flex;
+    flex-direction: column;
+    gap: 22px;
+    max-width: 900px;
+    margin: 0 auto;
+}
+.update-entry {
+    background: #121821;
+    border-left: 4px solid #44ddff;
+    padding: 20px 26px;
+}
+.update-version {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin-bottom: 12px;
+    padding-bottom: 10px;
+    border-bottom: 1px dashed rgba(68, 221, 255, 0.3);
+}
+.update-version-tag {
+    background: #44ddff;
+    color: #0a0e14;
+    padding: 4px 14px;
+    font-weight: bold;
+    font-size: 0.85rem;
+    letter-spacing: 2px;
+}
+.update-version-date {
+    color: #556677;
+    font-size: 0.8rem;
+    letter-spacing: 1px;
+}
+.update-version-title {
+    color: #e8eef5;
+    font-size: 1.05rem;
+    font-weight: bold;
+}
+.update-body {
+    color: #aab8c5;
+    font-size: 0.88rem;
+    line-height: 1.7;
+}
+.update-body ul {
+    list-style: none;
+    padding-left: 0;
+    margin-top: 8px;
+}
+.update-body li {
+    padding: 3px 0 3px 20px;
+    position: relative;
+}
+.update-body li::before {
+    content: '▸';
+    position: absolute;
+    left: 0;
+    color: #44ddff;
+    font-weight: bold;
+}
+.update-tag {
+    display: inline-block;
+    font-size: 0.7rem;
+    font-weight: bold;
+    padding: 1px 6px;
+    margin-left: 6px;
+    letter-spacing: 1px;
+}
+.update-tag-new  { background: rgba(0, 255, 136, 0.15); color: #00ff88; }
+.update-tag-fix  { background: rgba(255, 204, 0, 0.15); color: #ffcc00; }
+.update-tag-bal  { background: rgba(160, 68, 255, 0.15); color: #a044ff; }
+/* ============================================================
+   MIGRATION OVERLAY
+   ============================================================ */
+#migration-overlay {
+    position: fixed; inset: 0;
+    background: rgba(0, 8, 0, 0.94);
+    z-index: 2400;
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Consolas', 'Courier New', monospace;
+    color: #0f0;
+    padding: 20px;
+    box-sizing: border-box;
+}
+
+#migration-overlay .migration-window {
+    width: min(820px, 96vw);
+    max-height: 92vh;
+    background: #060a06;
+    border: 1px solid #0f0;
+    box-shadow: 0 0 40px rgba(0, 255, 0, 0.35), inset 0 0 80px rgba(0, 255, 0, 0.04);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+#migration-overlay .migration-titlebar {
+    background: #0f0;
+    color: #000;
+    padding: 6px 12px;
+    font-size: 0.82rem;
+    font-weight: bold;
+    letter-spacing: 2px;
+}
+
+#migration-overlay .migration-body {
+    padding: 22px 26px 18px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+#migration-overlay .migration-header {
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+}
+#migration-overlay .migration-icon {
+    font-size: 2.4rem;
+    color: #ffcc00;
+    text-shadow: 0 0 18px rgba(255, 204, 0, 0.8);
+    animation: migPulse 1.8s infinite;
+}
+@keyframes migPulse {
+    0%, 100% { text-shadow: 0 0 18px rgba(255, 204, 0, 0.8); }
+    50%      { text-shadow: 0 0 34px rgba(255, 204, 0, 1), 0 0 60px rgba(255, 204, 0, 0.6); }
+}
+#migration-overlay .migration-title {
+    font-size: 1.15rem;
+    font-weight: bold;
+    letter-spacing: 1px;
+    color: #ffcc00;
+}
+#migration-overlay .migration-version-info {
+    font-size: 0.8rem;
+    color: #33ccff;
+    letter-spacing: 1px;
+}
+
+#migration-overlay .migration-text {
+    font-size: 0.88rem;
+    line-height: 1.6;
+    color: #a0ffa0;
+    text-align: center;
+    padding: 0 10px;
+}
+#migration-overlay .migration-text b { color: #fff; }
+
+#migration-overlay .migration-columns {
+    display: flex;
+    gap: 14px;
+    flex-wrap: wrap;
+}
+#migration-overlay .migration-col {
+    flex: 1 1 260px;
+    border: 1px solid rgba(0, 255, 0, 0.35);
+    background: rgba(0, 20, 0, 0.35);
+    padding: 12px 14px;
+    min-width: 0;
+}
+#migration-overlay .migration-col-preserve { border-color: rgba(51, 255, 51, 0.55); }
+#migration-overlay .migration-col-lost     { border-color: rgba(255, 85, 85, 0.55); }
+
+#migration-overlay .migration-col-title {
+    font-size: 0.75rem;
+    font-weight: bold;
+    letter-spacing: 2px;
+    margin-bottom: 8px;
+    padding-bottom: 6px;
+    border-bottom: 1px dashed rgba(0, 255, 0, 0.35);
+}
+#migration-overlay .migration-col-preserve .migration-col-title { color: #33ff33; }
+#migration-overlay .migration-col-lost     .migration-col-title { color: #ff5555; }
+
+#migration-overlay .migration-col ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    font-size: 0.82rem;
+    line-height: 1.55;
+    color: #c8ffc8;
+}
+#migration-overlay .migration-col ul li {
+    padding: 3px 0 3px 16px;
+    position: relative;
+    word-wrap: break-word;
+    overflow-wrap: anywhere;
+}
+#migration-overlay .migration-col-preserve ul li::before {
+    content: '✓'; position: absolute; left: 0; color: #33ff33; font-weight: bold;
+}
+#migration-overlay .migration-col-lost ul li::before {
+    content: '✗'; position: absolute; left: 0; color: #ff5555; font-weight: bold;
+}
+#migration-overlay .migration-empty {
+    color: #668866;
+    font-size: 0.82rem;
+    font-style: italic;
+}
+
+#migration-overlay .migration-actions {
+    display: flex;
+    gap: 12px;
+    justify-content: center;
+    flex-wrap: wrap;
+    margin-top: 4px;
+}
+#migration-overlay .migration-btn {
+    background: transparent;
+    font-family: inherit;
+    font-size: 0.9rem;
+    font-weight: bold;
+    letter-spacing: 2px;
+    padding: 11px 24px;
+    cursor: pointer;
+    transition: all 0.15s;
+    border: 2px solid;
+}
+#migration-overlay .migration-btn-primary {
+    border-color: #33ff33;
+    color: #33ff33;
+    box-shadow: 0 0 12px rgba(51, 255, 51, 0.3);
+}
+#migration-overlay .migration-btn-primary:hover {
+    background: #33ff33;
+    color: #000;
+    box-shadow: 0 0 24px rgba(51, 255, 51, 0.7);
+}
+#migration-overlay .migration-btn-secondary {
+    border-color: #ff5555;
+    color: #ff5555;
+}
+#migration-overlay .migration-btn-secondary:hover {
+    background: #ff5555;
+    color: #000;
+}
+
+#migration-overlay .migration-hint {
+    text-align: center;
+    font-size: 0.72rem;
+    color: #668866;
+    letter-spacing: 1px;
+    margin-top: 4px;
+}
+/* ============================================================
+   UPDATE BADGE + TOAST
+   ============================================================ */
+.hud-update-badge {
+    background: transparent;
+    border: 1px solid #44ddff;
+    color: #44ddff;
+    padding: 4px 14px;
+    font-family: 'Consolas', monospace;
+    font-size: 0.78rem;
+    font-weight: bold;
+    letter-spacing: 1px;
+    cursor: pointer;
+    transition: all 0.15s;
+    margin: 0 10px;
+    animation: updateBadgePulse 1.6s infinite;
+}
+.hud-update-badge:hover {
+    background: #44ddff;
+    color: #000;
+    box-shadow: 0 0 18px rgba(68, 221, 255, 0.85);
+    animation: none;
+}
+@keyframes updateBadgePulse {
+    0%, 100% { box-shadow: 0 0 0 rgba(68,221,255,0); }
+    50%      { box-shadow: 0 0 14px rgba(68,221,255,0.7); }
+}
+
+#update-toast {
+    position: fixed;
+    right: 24px;
+    bottom: 24px;
+    width: 320px;
+    background: #0a1218;
+    border: 1px solid #44ddff;
+    border-left: 4px solid #44ddff;
+    box-shadow:
+        0 0 30px rgba(68,221,255,0.25),
+        inset 0 0 40px rgba(68,221,255,0.03);
+    z-index: 2200;
+    display: none;
+    flex-direction: column;
+    font-family: 'Consolas', monospace;
+    animation: updateToastIn 0.45s ease-out;
+}
+@keyframes updateToastIn {
+    from { opacity: 0; transform: translateX(30px); }
+    to   { opacity: 1; transform: translateX(0); }
+}
+.update-toast-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 12px;
+    background: rgba(68,221,255,0.10);
+    border-bottom: 1px solid rgba(68,221,255,0.35);
+    color: #44ddff;
+    font-size: 0.76rem;
+    font-weight: bold;
+    letter-spacing: 1.5px;
+}
+.update-toast-icon {
+    color: #44ddff;
+    animation: updateBadgePulse 1.4s infinite;
+}
+.update-toast-close {
+    margin-left: auto;
+    background: transparent;
+    border: 1px solid rgba(68,221,255,0.5);
+    color: #44ddff;
+    font-family: inherit;
+    font-size: 0.68rem;
+    padding: 0 6px;
+    cursor: pointer;
+    line-height: 16px;
+}
+.update-toast-close:hover { background: #44ddff; color: #000; }
+.update-toast-body {
+    padding: 12px 14px;
+    color: #aab8c5;
+    font-size: 0.82rem;
+    line-height: 1.5;
+    min-height: 40px;
+}
+.update-toast-cta {
+    margin: 0 14px 12px;
+    background: transparent;
+    border: 1px solid #44ddff;
+    color: #44ddff;
+    font-family: inherit;
+    font-size: 0.78rem;
+    font-weight: bold;
+    letter-spacing: 2px;
+    padding: 8px 14px;
+    cursor: pointer;
+    transition: all 0.15s;
+}
+.update-toast-cta:hover {
+    background: #44ddff;
+    color: #0a1218;
+    box-shadow: 0 0 18px rgba(68,221,255,0.7);
+}

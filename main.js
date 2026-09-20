@@ -72,16 +72,15 @@ function getSuggestions(inputText) {
     // ============================================================
     if (parts.length <= 1) {
         const commands = [
-            'help', 'ls', 'cd', 'cat', 'rm', 'cp', 'mv',
-            'netmap', 'connect', 'disconnect', 'scan',
-            'probe', 'run', 'scp', 'unzip', 'login',
-            'porthack', 'wallbreaker', 'tools', 'ps',
-            'hardware', 'debug', 'clear', 'restart', 'reset',
-            'trace-speed'
-        ];
+    'help', 'ls', 'cd', 'cat', 'rm', 'cp', 'mv',
+    'netmap', 'connect', 'disconnect', 'scan',
+    'probe', 'run', 'scp', 'unzip', 'login',
+    'porthack', 'wallbreaker', 'tools', 'ps',
+    'hardware', 'debug', 'clear', 'restart', 'reset'
+];
         matches = commands.filter(c => c.startsWith(currentPart.toLowerCase()));
     } else if (parts[0].toLowerCase() === 'connect') {
-        const ips = ['market.onion', 'hacknet.onion', 'gomail.com', 'probe.com'];
+        const ips = ['market.onion', 'hacknet.onion', 'gomail.com', 'probe.com', 'news.com'];
         gameState.servers.forEach(s => { if (s.discovered) ips.push(s.ip); });
         gameState.missionsActive.forEach(m => { if (m.targetIP && !ips.includes(m.targetIP)) ips.push(m.targetIP); });
         matches = ips.filter(ip => ip.startsWith(currentPart));
@@ -207,13 +206,8 @@ document.querySelector('.center-panel').addEventListener('click', (e) => {
 });
 
 // INIT
+// INIT
 const pendingLC = (typeof getPersistedLastChance === 'function') ? getPersistedLastChance() : null;
-
-const rawSave = localStorage.getItem(SAVE_KEY);
-let savedVersion = 0;
-if (rawSave) {
-    try { savedVersion = JSON.parse(rawSave).version || 0; } catch(e) {}
-}
 
 function _revealHUD(withFade) {
     document.body.classList.remove('booting', 'boot-topbar', 'boot-right', 'boot-center');
@@ -226,13 +220,13 @@ function _revealHUD(withFade) {
     }
 }
 
+// --- 1) Last-chance pendiente (prioridad máxima) ---
 if (pendingLC) {
-    if (savedVersion === 3) {
+    const saveInfoLC = (typeof peekSaveInfo === 'function') ? peekSaveInfo() : { exists: false };
+    if (saveInfoLC.exists && saveInfoLC.current) {
         const restored = loadGame();
         if (restored) {
             if (pendingLC.phase === 'pending') {
-                // Replay de la terminal blanca — HUD sigue oculto hasta que
-                // enterWhiteTerminal muestre su propio overlay
                 _revealHUD(false);
                 if (typeof enterWhiteTerminal === 'function') {
                     enterWhiteTerminal();
@@ -260,28 +254,61 @@ if (pendingLC) {
         } else {
             clearPersistedLastChance();
             clearSave();
-            // Setup: seguimos con body.booting, startSetup mantiene el HUD oculto
             startSetup();
         }
     } else {
+        // El save desapareció o cambió de versión → descartar LC
         clearPersistedLastChance();
-        localStorage.removeItem(SAVE_KEY);
-        startSetup();
+        if (saveInfoLC.exists && saveInfoLC.outdated) {
+            // Derivar a migración
+            document.body.classList.remove('booting');
+            document.querySelector('.top-bar').style.display = 'none';
+            document.querySelector('.main-content').style.display = 'none';
+            document.body.classList.add('ui-visible');
+            setTimeout(() => {
+                showMigrationOverlay(saveInfoLC.save, saveInfoLC.version, saveInfoLC.key);
+            }, 100);
+        } else if (!saveInfoLC.exists) {
+            showPowerAndBoot(() => startSetup());
+        } else {
+            clearSave();
+            startSetup();
+        }
     }
-} else if (savedVersion !== 3) {
-    localStorage.removeItem(SAVE_KEY);
-    showPowerAndBoot(() => startSetup());
-} else {
-    const restored = loadGame();
-    if (!restored) {
+}
+// --- 2) Save de versión anterior → migración ---
+else {
+    const saveInfo = (typeof peekSaveInfo === 'function') ? peekSaveInfo() : { exists: false };
+
+    if (saveInfo.exists && saveInfo.corrupted) {
+        // Save corrupto → borrar y empezar de cero
         clearSave();
-        startSetup();
+        showPowerAndBoot(() => startSetup());
+    } else if (saveInfo.exists && saveInfo.outdated) {
+        // Overlay de migración
+        document.body.classList.remove('booting');
+        document.body.classList.add('ui-visible');
+        const topBar = document.querySelector('.top-bar');
+        const mainC  = document.querySelector('.main-content');
+        if (topBar) topBar.style.display = 'none';
+        if (mainC)  mainC.style.display  = 'none';
+        setTimeout(() => {
+            showMigrationOverlay(saveInfo.save, saveInfo.version, saveInfo.key);
+        }, 150);
+    } else if (saveInfo.exists && saveInfo.current) {
+        const restored = loadGame();
+        if (!restored) {
+            clearSave();
+            startSetup();
+        } else {
+            _revealHUD(true);
+            updateUI();
+            input.focus();
+            if (gameState.netmapOpen) startNetmapAnim();
+        }
     } else {
-        // Reload con save válido: sacamos booting y hacemos fade-in
-        _revealHUD(true);
-        updateUI();
-        input.focus();
-        if (gameState.netmapOpen) startNetmapAnim();
+        // Primera partida
+        showPowerAndBoot(() => startSetup());
     }
 }
 // ============================================================
@@ -782,3 +809,37 @@ document.addEventListener('mousedown', (e) => {
     //    (no rompe clicks, solo evita que se desenfoque el input)
     e.preventDefault();
 }, true);  // capture: corre antes que cualquier otro handler
+// ============================================================
+// NOTIFICACIÓN DE ACTUALIZACIÓN
+// ============================================================
+let _updateNotifShown = false;
+
+window.maybeShowUpdateNotification = function() {
+    if (_updateNotifShown) return;
+    if (gameState.tutorialOpen) return;
+    if (gameState.gamePhase !== 'normal') return;
+    if (gameState.isGameOver) return;
+
+    // Primerizo: marcamos como visto sin spamear
+    if (!gameState.setupComplete) {
+        if (typeof markReleaseAsSeen === 'function') markReleaseAsSeen();
+        _updateNotifShown = true;
+        return;
+    }
+
+    _updateNotifShown = true;
+
+    if (typeof hasPendingUpdate !== 'function' || !hasPendingUpdate()) {
+        if (typeof updateUpdateBadge === 'function') updateUpdateBadge();
+        return;
+    }
+    if (typeof updateUpdateBadge === 'function') updateUpdateBadge();
+    if (typeof showUpdateToast === 'function') showUpdateToast();
+};
+
+// Chequeo inicial al arrancar (con delay para no pisar animaciones)
+setTimeout(() => {
+    if (typeof maybeShowUpdateNotification === 'function') {
+        maybeShowUpdateNotification();
+    }
+}, 2500);

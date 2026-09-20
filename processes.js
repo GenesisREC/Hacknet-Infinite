@@ -148,8 +148,12 @@ function renderProcesses() {
     const proc = gameState.runningProcesses[currentProcessPage];
     let html = '';
     let statusText = '', statusClass = '';
-
-    if (proc.isUnzip) {
+    if (proc.isRm) {
+    statusText = proc.status === 'hacking'
+        ? `Borrando ${proc.fileName}...`
+        : (proc.resultMessage || '');
+    statusClass = proc.status === 'active' ? 'active' : '';
+} else if (proc.isUnzip) {
         statusText = proc.status === 'hacking'
             ? `Extrayendo ${proc.extractedCount || 0}/${proc.totalFiles} archivos...`
             : (proc.resultMessage || '');
@@ -173,10 +177,14 @@ function renderProcesses() {
     let headerText;
     if (proc.isUnzip) headerText = `<span class="proc-name" style="color:#ffaa44;">unzip</span> <span class="proc-port">→ ${proc.zipName}</span>`;
     else if (proc.isDownload) headerText = `<span class="proc-name" style="color:#33ccff;">scp</span> <span class="proc-port">→ ${proc.fileName}</span>`;
+    else if (proc.isRm) headerText = `<span class="proc-name" style="color:#ff8844;">rm</span> <span class="proc-port">→ ${proc.fileName}</span>`;
     else if (proc.isPortHack) headerText = `<span class="proc-name" style="color:#33ffff;">porthack</span>`;
     else if (proc.isScan) headerText = `scan.exe`;
     else headerText = `${proc.toolName}${proc.portNum ? ' <span class="proc-port">→ :' + proc.portNum + '</span>' : ''}`;
 
+    const isDownload = proc.isDownload;
+    const isUnzip = proc.isUnzip;
+    const isRm = !!proc.isRm;
     const isSql = proc.toolName === 'sql_crack.exe' && !proc.isScan && !proc.isPortHack && !proc.isDownload && !proc.isUnzip && proc.sqlScript;
     const isSsh = proc.toolName === 'ssh_crack.exe' && !proc.isScan && !proc.isPortHack && !proc.isDownload && !proc.isUnzip && proc.sshOrbs;
     const isHttp = proc.toolName === 'http_crack.exe' && !proc.isScan && !proc.isPortHack && !proc.isDownload && !proc.isUnzip && proc.httpTree;
@@ -185,8 +193,6 @@ function renderProcesses() {
     const isTelnet = proc.toolName === 'telnet_crack.exe' && !proc.isScan && !proc.isPortHack && !proc.isDownload && !proc.isUnzip && proc.telnetData;
     const isDns = proc.toolName === 'dns_crack.exe' && !proc.isScan && !proc.isPortHack && !proc.isDownload && !proc.isUnzip && proc.dnsData;
     const isPortHack = proc.isPortHack && proc.portHackData;
-    const isDownload = proc.isDownload;
-    const isUnzip = proc.isUnzip;
     const stalledClass = proc.isStalled ? ' stalled' : '';
     html += `<div class="process-card${stalledClass}" id="proccard-${proc.id}">
         <div class="proc-header">
@@ -202,6 +208,7 @@ function renderProcesses() {
     if (isDns)    html += `<canvas class="smtp-canvas"   id="dns-canvas-${proc.id}"    width="${DNS_CANVAS_W}"    height="${DNS_CANVAS_H}"></canvas>`;
     if (isPortHack) html += `<canvas class="smtp-canvas" id="porthack-canvas-${proc.id}" width="${PORTHACK_CANVAS_W}" height="${PORTHACK_CANVAS_H}"></canvas>`;
     if (isDownload) html += `<canvas class="sql-canvas"  id="dl-canvas-${proc.id}"     width="${DOWNLOAD_CANVAS_W}" height="${DOWNLOAD_CANVAS_H}"></canvas>`;
+    if (isRm)       html += `<canvas class="sql-canvas"  id="rm-canvas-${proc.id}"     width="${RM_CANVAS_W}"       height="${RM_CANVAS_H}"></canvas>`;
     if (isUnzip)  html += `<canvas class="sql-canvas"    id="uz-canvas-${proc.id}"     width="${UNZIP_CANVAS_W}"    height="${UNZIP_CANVAS_H}"></canvas>`;
     html += `<div class="progress-container">
             <div class="progress-bar${stalledClass}" id="proc-bar-${proc.id}" style="width:${proc.progress}%"></div>
@@ -227,6 +234,17 @@ function updateProcessBarUI(proc) {
 function updateProcessStatusUI(proc) {
     const statusEl = document.getElementById('proc-status-' + proc.id);
     if (!statusEl) return;
+
+if (proc.isRm) {
+    if (proc.status === 'hacking') {
+        statusEl.textContent = `Borrando ${proc.fileName}...`;
+        statusEl.className = 'proc-status';
+    } else if (proc.status === 'active') {
+        statusEl.textContent = 'Eliminado';
+        statusEl.className = 'proc-status active';
+    }
+    return;
+}
 
     if (proc.isUnzip) {
         if (proc.status === 'hacking') {
@@ -333,6 +351,9 @@ function killProcess(procId) {
         stopScannerSound();
         output.innerHTML += `<span class="text-warning">[!] Escaneo cancelado.</span><br>`;
     }
+	else if (proc.isRm) {
+    output.innerHTML += `<span class="text-warning">[!] Borrado cancelado: ${proc.fileName}.</span><br>`;
+}
     else if (proc.isDownload) {
         output.innerHTML += `<span class="text-warning">[!] Descarga cancelada: ${proc.fileName}.</span><br>`;
     }
@@ -1032,4 +1053,88 @@ function checkDownloadTrigger() {
             triggerQuickTrace(server);
         }
     }
+}
+// ============================================================
+// RM — proceso visible por archivo borrado
+// ============================================================
+// Un proceso por archivo (secuencial). Cada uno:
+//   - Agrega un proceso a la lista
+//   - Anima drawRmAnimation durante durationMs
+//   - Devuelve una promesa que resuelve cuando termina
+function launchRmProcess(fileInfo, durationMs) {
+    return new Promise(resolve => {
+        const procId = 'rm_' + Date.now() + '_' + Math.floor(Math.random() * 1000);
+        const proc = {
+            id: procId,
+            toolName: 'rm',
+            isRm: true,
+            status: 'hacking',
+            progress: 0,
+            ram: 0,
+            serverIP: fileInfo.isRemote ? (gameState.currentIP || 'remote') : 'local',
+            fileName: fileInfo.name,
+            fileSizeKB: fileInfo.size || 1,
+            isRemote: !!fileInfo.isRemote,
+            animatedElapsed: 0,
+            startedAt: Date.now(),
+            durationMs: durationMs,
+            resultMessage: ''
+        };
+        proc.rmData = createRmData(proc.fileName, proc.fileSizeKB);
+
+        gameState.runningProcesses.push(proc);
+        currentProcessPage = gameState.runningProcesses.length - 1;
+        lastProcessSignature = '__force__';
+        updateUI();
+
+        const startTime = Date.now();
+
+        function frame() {
+            try {
+                const now = Date.now();
+                if (gameState.isGameOver) { resolve(); return; }
+                const cur = gameState.runningProcesses.find(p => p.id === procId);
+                if (!cur) { resolve(); return; }
+
+                const elapsed = now - startTime;
+                cur.animatedElapsed = elapsed;
+                const progress = Math.min(100, (elapsed / durationMs) * 100);
+                cur.progress = Math.floor(progress);
+
+                const bar = document.getElementById('proc-bar-' + procId);
+                if (bar) bar.style.width = progress + '%';
+                updateProcessStatusUI(cur);
+
+                try { drawRmAnimation(cur, now); } catch (e) { console.error('[rm draw]', e); }
+                updateAnimSound(cur, 'rm', progress / 100, now);
+
+                if (progress < 100) {
+                    requestAnimationFrame(frame);
+                } else {
+                    cur.status = 'active';
+                    cur.resultMessage = 'Eliminado';
+                    updateProcessStatusUI(cur);
+                    updateUI();
+
+                    // Pequeña pausa para que se vea el "Eliminado"
+                    setTimeout(() => {
+                        const idx = gameState.runningProcesses.findIndex(p => p.id === procId);
+                        if (idx >= 0) {
+                            gameState.runningProcesses.splice(idx, 1);
+                            if (currentProcessPage >= gameState.runningProcesses.length) {
+                                currentProcessPage = Math.max(0, gameState.runningProcesses.length - 1);
+                            }
+                            lastProcessSignature = '__force__';
+                            updateUI();
+                        }
+                        resolve();
+                    }, 280);
+                }
+            } catch (err) {
+                console.error('[launchRmProcess] Error:', err);
+                resolve();
+            }
+        }
+        requestAnimationFrame(frame);
+    });
 }

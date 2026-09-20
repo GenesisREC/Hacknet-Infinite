@@ -1,4 +1,24 @@
-const SAVE_KEY = 'hacknet_save_v3';
+// ============================================================
+// SAVE VERSIONING & MIGRATION
+// ============================================================
+const SAVE_KEY = 'hacknet_save';                        // clave unificada actual
+const SAVE_KEY_LEGACY = ['hacknet_save_v3', 'hacknet_save_v2', 'hacknet_save_v1'];
+const SAVE_VERSION = 4;                                 // ← subir cuando rompas compatibilidad
+const UPDATE_SEEN_KEY = 'hacknet_last_seen_version';
+
+// Info mostrada en el overlay de migración (por versión objetivo)
+const SAVE_VERSION_INFO = {
+    4: {
+        release: 'v1.6.0',
+        label: 'Actualización mayor',
+        highlights: [
+            'Sistema de noticias y NetMap ampliado',
+            'Reformulación de misiones y archivos procedurales',
+            'Nuevo motor de audio por animación'
+        ]
+    },
+    3: { release: 'v1.0.0', label: 'Lanzamiento inicial', highlights: [] }
+};
 
 const TOOL_TEMPLATES = {
     'ssh_crack.exe':    { service: 'SSH',    defaultPort: 22,   ram: 1.0,  anim: 'ssh' },
@@ -599,6 +619,8 @@ const PORTHACK_CANVAS_W = 290; const PORTHACK_CANVAS_H = 260;
 const WALLBREAKER_CANVAS_W = 290; const WALLBREAKER_CANVAS_H = 260;
 const DOWNLOAD_CANVAS_W = 295; const DOWNLOAD_CANVAS_H = 100;
 const UNZIP_CANVAS_W = 295; const UNZIP_CANVAS_H = 130;
+const RM_CANVAS_W = 295;const RM_CANVAS_H = 90;
+
 
 const FIREWALL_RAM_COST = 0.9;
 const WALLBREAKER_ANALYZE_MS = 2600;

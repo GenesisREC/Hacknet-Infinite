@@ -519,13 +519,14 @@ function enterWhiteTerminal() {
     gameState.inMarket = false;
     gameState.inHacknet = false;
     gameState.inGomail = false;
+    gameState.inNews = false;
     killAllProcesses();
     if (typeof closeWallbreakerApp === 'function') closeWallbreakerApp(true);
     stopScannerSound();
 
     ['market-form-overlay', 'market-web-overlay', 'hacknet-form-overlay', 'gomail-form-overlay',
- 'gomail-web-overlay', 'connect-overlay', 'wallbreaker-section',
- 'lastchance-bar'].forEach(id => {
+     'gomail-web-overlay', 'connect-overlay', 'wallbreaker-section',
+     'lastchance-bar', 'news-web-overlay'].forEach(id => {
         const el = document.getElementById(id);
         if (el) el.style.display = 'none';
     });
@@ -602,8 +603,8 @@ function showWhiteTerminalMessages() {
         '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━',
         '',
         'En /root/ y sus subcarpetas hay muchos',
-	'archivos con registros de rastreo. Cada uno',
-	'apunta a una IP objetivo distinta.',
+        'archivos con registros de rastreo. Cada uno',
+        'apunta a una IP objetivo distinta.',
         '',
         'TU IP REAL ES:  127.0.0.1',
         '',
@@ -955,14 +956,10 @@ function updateLastChanceBar() {
 // ============================================================
 function createLastChanceServer(forcedTargetPath) {
     const bestVersion = getBestToolVersion();
-    // Los puertos escalan con el mejor cracker del jugador.
-    // v1.0 → puertos ~0.85-1.15 · v5.0 → puertos ~4.85-5.0
-    // Así siempre se ve "duro" pero crackeable.
     const portVersion = Math.max(0.5, Math.min(5.0, bestVersion - 0.15 + Math.random() * 0.3));
 
     const ownCrackers = gameState.tools.map(t => t.service).filter((v, i, a) => a.indexOf(v) === i);
     const serviceMap = { 'SSH': 22, 'HTTP': 80, 'SQL': 1433, 'FTP': 21, 'SMTP': 25, 'TELNET': 23, 'DNS': 53 };
-    // ... el resto queda igual
     const crackedServices = ownCrackers.length > 0 ? ownCrackers : ['SSH', 'HTTP', 'SQL'];
     const ports = [];
     const usedPorts = new Set();
@@ -1184,7 +1181,7 @@ function createLastChanceFS(forcedTargetPath) {
 function finalGameOver() {
     if (gameState.lastChanceTimer) clearInterval(gameState.lastChanceTimer);
     gameState.lastChanceTimer = null;
-    stopLastChanceEvents();          // ← AGREGAR (ver falta 3)
+    stopLastChanceEvents();
     gameState.gamePhase = 'game-over';
     gameState.isGameOver = true;
     input.disabled = true;
@@ -1214,7 +1211,7 @@ function finalGameOver() {
         } catch(e) {}
     }
 
-        const email = buildGameOverEmail();
+    const email = buildGameOverEmail();
 
     document.body.innerHTML = `
     <div style="position:fixed; inset:0; background:#000; color:#f00; overflow-y:auto; z-index:99999; font-family:'Consolas',monospace;">
@@ -1228,9 +1225,10 @@ function finalGameOver() {
                 <div style="color:#fff; line-height:1.7; font-size:0.95rem;">
                     ${email.body.replace(/\n/g, '<br>')}
                 </div>
-            </div><div style="color:#888; margin-top:26px; font-size:0.9rem; text-align:center;">Presioná el botón para cargar tu último guardado.</div>
+            </div>
+            <div style="color:#888; margin-top:26px; font-size:0.9rem; text-align:center;">Presioná el botón para cargar tu último guardado.</div>
             <button onclick="window.location.reload();" style="margin-top:18px; margin-bottom:30px; background:transparent; border:2px solid #f00; color:#f00; padding:12px 30px; font-family:inherit; font-weight:bold; letter-spacing:2px; cursor:pointer; font-size:1rem;">[ CARGAR ÚLTIMO GUARDADO ]</button>
-	</div>
+        </div>
     </div>
     <style>@keyframes gdPulse { 0%,100% { text-shadow: 0 0 20px #f00, 0 0 40px #f00; } 50% { text-shadow: 0 0 40px #f00, 0 0 80px #f00, 0 0 120px #f00; } }</style>
     `;
@@ -1242,7 +1240,7 @@ function finalGameOver() {
 function lastChanceVictory() {
     if (gameState.lastChanceTimer) clearInterval(gameState.lastChanceTimer);
     gameState.lastChanceTimer = null;
-    stopLastChanceEvents(); 
+    stopLastChanceEvents();
     gameState.gamePhase = 'won';
     document.getElementById('lastchance-bar').style.display = 'none';
     document.body.classList.remove('lastchance-mode');

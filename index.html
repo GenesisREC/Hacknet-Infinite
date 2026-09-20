@@ -37,7 +37,47 @@
         <div class="setup-hint">Presiona ENTER para confirmar cada campo</div>
     </div>
 </div>
+<!-- ============================================================
+     MIGRATION OVERLAY — guardados de versiones anteriores
+     ============================================================ -->
+<div id="migration-overlay">
+    <div class="migration-window">
+        <div class="migration-titlebar">
+            <span>⚠ ACTUALIZACIÓN DETECTADA</span>
+        </div>
+        <div class="migration-body">
+            <div class="migration-header">
+                <div class="migration-icon">⚠</div>
+                <div class="migration-title">Tu guardado es de una versión anterior</div>
+                <div class="migration-version-info" id="migration-version-info">v? → v?</div>
+            </div>
 
+            <div class="migration-text">
+                Detectamos que tu partida fue creada con una versión previa del juego.
+                Debido a cambios en la estructura interna, <b>no se puede cargar tal cual</b>.
+                Pero podemos intentar preservar tu progreso más importante.
+            </div>
+
+            <div class="migration-columns">
+                <div class="migration-col migration-col-preserve">
+                    <div class="migration-col-title">✓ SE PRESERVARÁ</div>
+                    <div id="migration-preserve-list"></div>
+                </div>
+                <div class="migration-col migration-col-lost">
+                    <div class="migration-col-title">✗ SE PERDERÁ</div>
+                    <div id="migration-lost-list"></div>
+                </div>
+            </div>
+
+            <div class="migration-actions">
+                <button class="migration-btn migration-btn-primary" onclick="confirmMigration()">MIGRAR (recomendado)</button>
+                <button class="migration-btn migration-btn-secondary" onclick="declineMigration()">EMPEZAR DE CERO</button>
+            </div>
+
+            <div class="migration-hint">Tu guardado original no será borrado hasta que confirmes una opción.</div>
+        </div>
+    </div>
+</div>
 <!-- ============================================================
      MARKET FORM
      ============================================================ -->
@@ -163,7 +203,26 @@
     </div>
     <div class="webmail-content" id="gomail-web-content"></div>
 </div>
-
+<!-- ============================================================
+     NEWS.COM — PORTAL DE NOTICIAS
+     ============================================================ -->
+<div id="news-web-overlay">
+    <div class="browser-bar">
+        <span class="lock">🔒</span>
+        <span class="url" id="news-web-url">https://news.com/latest</span>
+        <span style="color:#44ddff; font-size:0.7rem;">NEWS.com</span>
+    </div>
+    <div class="news-toolbar">
+        <div class="news-logo">📰 NEWS<span>.com</span></div>
+        <div class="news-tabs">
+            <button class="news-tab active" id="news-tab-latest" onclick="switchNewsTab('latest')">ÚLTIMAS NOTICIAS</button>
+            <button class="news-tab" id="news-tab-updates" onclick="switchNewsTab('updates')">UPDATES</button>
+        </div>
+        <div class="news-toolbar-spacer"></div>
+        <button class="news-btn news-btn-logout" onclick="closeNewsWeb()">[X] SALIR</button>
+    </div>
+    <div class="news-content" id="news-web-content"></div>
+</div>
 <!-- ============================================================
      CONNECT OVERLAY
      ============================================================ -->
@@ -242,7 +301,8 @@
 <div class="top-bar">
     <span id="conn-status">DESCONECTADO</span>
     <button class="hud-manual-btn" onclick="openTutorial()" title="Manual de usuario (F1)">MANUAL</button>
-    <span id="trace-timer">RASTREO: --:--</span>
+<button id="update-badge" class="hud-update-badge" onclick="goToUpdatesFromToast()" style="display:none;">● UPDATE</button>
+<span id="trace-timer">RASTREO: --:--</span>
 </div>
 
 <!-- ============================================================
@@ -337,9 +397,23 @@
     </div>
 </div>
 <!-- ============================================================
+     UPDATE TOAST — notificación de nuevas versiones
+     ============================================================ -->
+<div id="update-toast">
+    <div class="update-toast-header">
+        <span class="update-toast-icon">◆</span>
+        <span id="update-toast-title">ACTUALIZACIÓN DISPONIBLE</span>
+        <button class="update-toast-close" onclick="hideUpdateToast()">[X]</button>
+    </div>
+    <div class="update-toast-body" id="update-toast-body"></div>
+    <button class="update-toast-cta" onclick="goToUpdatesFromToast()">▸ VER CAMBIOS</button>
+</div>
+<!-- ============================================================
      SCRIPTS — ORDEN IMPORTANTE
      ============================================================ -->
 <script src="config.js"></script>
+<script src="migration.js"></script>
+<script src="news.js"></script> 
 <script src="data.js"></script> 
 <script src="state.js"></script>
 <script src="animations.js"></script>
