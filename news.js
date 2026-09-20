@@ -7,17 +7,6 @@
 // ============================================================
 const NEWS_UPDATES = [
     {
-        version: 'v1.5.0',
-        date: '2026-09-20',
-        title: 'Portal de noticias y ajustes',
-        body: [
-            { text: 'Nueva página News.com con feed de actividad en tiempo real.', tag: 'new' },
-            { text: 'Feed generado automáticamente a partir de tus acciones en la red.', tag: 'new' },
-            { text: 'Pestaña de Updates con changelog del juego.', tag: 'new' },
-            { text: 'Ajustes de rendimiento en la generación procedural.', tag: 'fix' }
-        ]
-    },
-    {
     version: 'v1.6.0',
     date: '2026-09-20',
     title: 'Borrado con animación + migración de guardados',
@@ -28,6 +17,17 @@ const NEWS_UPDATES = [
         { text: 'News.com ahora aparece como nodo fijo en el NetMap.', tag: 'new' }
     ]
 },
+    {
+        version: 'v1.5.0',
+        date: '2026-09-20',
+        title: 'Portal de noticias y ajustes',
+        body: [
+            { text: 'Nueva página News.com con feed de actividad en tiempo real.', tag: 'new' },
+            { text: 'Feed generado automáticamente a partir de tus acciones en la red.', tag: 'new' },
+            { text: 'Pestaña de Updates con changelog del juego.', tag: 'new' },
+            { text: 'Ajustes de rendimiento en la generación procedural.', tag: 'fix' }
+        ]
+    },
     {
         version: 'v1.4.0',
         date: '2026-09-18',
