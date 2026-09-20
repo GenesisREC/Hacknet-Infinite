@@ -92,6 +92,7 @@ function extractPreservables(oldSave) {
 // OVERLAY
 // ------------------------------------------------------------
 function showMigrationOverlay(oldSave, oldVersion, oldKey) {
+ closeAllOverlays(); 
     pendingMigrationSave    = oldSave;
     pendingMigrationKey     = oldKey;
     pendingMigrationVersion = oldVersion;
@@ -346,4 +347,26 @@ function applyMigratedSave(oldSave) {
 
     input.disabled = false;
     input.focus();
+}
+function closeAllOverlays() {
+    [
+        'news-web-overlay',
+        'tutorial-overlay',
+        'market-form-overlay',
+        'market-web-overlay',
+        'hacknet-form-overlay',
+        'gomail-form-overlay',
+        'gomail-web-overlay',
+        'connect-overlay',
+        'white-terminal-overlay',
+        'lastchance-bar'
+    ].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.style.display = 'none';
+    });
+    // Reset del estado de news por las dudas
+    if (typeof gameState !== 'undefined') {
+        gameState.inNews = false;
+        gameState.newsOpen = false;
+    }
 }

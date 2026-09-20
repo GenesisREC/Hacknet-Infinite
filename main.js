@@ -1,3 +1,17 @@
+[
+    'news-web-overlay',
+    'tutorial-overlay',
+    'market-form-overlay',
+    'market-web-overlay',
+    'hacknet-form-overlay',
+    'gomail-form-overlay',
+    'gomail-web-overlay',
+    'connect-overlay'
+].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.style.display = 'none';
+});
+
 function renderSuggestions() {
     suggestionBox.innerHTML = '';
     suggestions.forEach((sugRaw, index) => {
