@@ -32,6 +32,7 @@ const ANTENNA_UPGRADES = [
 
 const USERNAME_POOL = ['admin','root','user','sysadmin','operator','guest','manager','webmaster','support'];
 const PASSWORD_POOL = ['123456','admin','password','qwerty','letmein','hunter2','root','toor','pass123','welcome','changeme','p@ssw0rd','letmein1'];
+const PROBE_SECRET_CODE = 'Lugones258965474123';
 
 const FILE_CATEGORIES = {
     financiero:  { basePerKB15: 26, cap: Infinity, label: 'Financiero'  },

@@ -826,7 +826,30 @@ function handleCommand(cmd) {
             startScan();
             break;
         }
-
+	case 'unlock': {
+            if (!gameState.isConnected || !gameState.currentServer || !gameState.currentServer.isProbeServer) {
+                output.innerHTML += `<span class="text-error">unlock: comando no disponible en este servidor.</span><br>`;
+                break;
+            }
+            if (gameState.probeUnlocked) {
+                output.innerHTML += `<span class="text-warning">[i] Ya desbloqueaste el modo pruebas.</span><br>`;
+                break;
+            }
+            if (args.length < 2) {
+                output.innerHTML += `<span class="text-warning">Uso: unlock [código]</span><br>`;
+                break;
+            }
+            const code = args.slice(1).join(' ');
+            if (code === PROBE_SECRET_CODE) {
+                gameState.probeUnlocked = true;
+                unlockAllToolsForProbe();
+                soundSuccess();
+            } else {
+                output.innerHTML += `<div class="msg-box"><span class="text-error">[✗] Código incorrecto.</span></div>`;
+                soundError();
+            }
+            break;
+        }
         case 'connect': {
             if (!args[1]) { output.innerHTML += `<span class="text-error">Especificá IP o dirección.</span><br>`; break; }
             const target = args[1].toLowerCase();
@@ -866,7 +889,6 @@ function handleCommand(cmd) {
             remoteCWD = server.primaryDir || '/home/user';
             server.downloadsDuringSession = 0;
             server._traceTriggered = false;
-            if (server.isProbeServer) unlockAllToolsForProbe();
             if (server.hasTrace && server.traceLogPath && server.fs[server.traceLogPath]) {
                 const mins = Math.floor(server.traceDuration / 60), secs = server.traceDuration % 60;
                 const timeStr = `${mins.toString().padStart(2,'0')}:${secs.toString().padStart(2,'0')}`;
@@ -1269,6 +1291,7 @@ function resetGame() {
     document.body.classList.remove('trace-critical');
     gameState.currentIP = null; gameState.currentServer = null;
     gameState.isConnected = false; gameState.isAuthenticated = false;
+    gameState.probeUnlocked = false;
     gameState.netmapOpen = false; gameState.isDeleting = false; gameState.isGameOver = false;
     gameState.isDownloading = false; gameState.quickTraceActive = false;
     gameState.money = 0;
@@ -1305,12 +1328,15 @@ function resetGame() {
     input.disabled = true;
     gameState.setupComplete = false;
     gameState.localUser = 'user'; gameState.localPass = '1234';
-    setTimeout(() => {
-        if (marketFormOverlay) marketFormOverlay.style.display = 'none';
-        ['connect-overlay', 'hacknet-form-overlay', 'gomail-form-overlay', 'gomail-web-overlay', 'wallbreaker-section'].forEach(id => {
-            const el = document.getElementById(id);
-            if (el) el.style.display = 'none';
-        });
-        startSetup();
-    }, 400);
+        setTimeout(() => {
+    if (marketFormOverlay) marketFormOverlay.style.display = 'none';
+    ['connect-overlay', 'hacknet-form-overlay', 'gomail-form-overlay', 'gomail-web-overlay', 'wallbreaker-section'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.style.display = 'none';
+    });
+    gameState.tutorialOpen = false;
+    document.body.classList.remove('ui-visible', 'ui-fade-in');
+    document.body.classList.add('booting', 'ui-booting');
+    showPowerAndBoot(() => startSetup());
+}, 400);
 }

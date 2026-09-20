@@ -35,7 +35,12 @@ body.quick-trace-active .right-panel { border-left-color: #f00; }
     justify-content: space-between;
     align-items: center;
     border-bottom: 1px solid #0f0;
-    box-shadow: 0 0 10px rgba(0, 255, 0, 0.2);
+    /* Sin box-shadow: era lo que generaba ese "halo verde" arriba */
+    flex-shrink: 0;              /* ← evita que el flex lo comprima */
+    min-height: 42px;            /* ← altura estable */
+    box-sizing: border-box;
+    position: relative;
+    z-index: 5;
 }
 #trace-timer { color: #f00; font-weight: bold; text-shadow: 0 0 5px rgba(255, 0, 0, 0.5); }
 #money-status { color: #ffcc00; font-weight: bold; text-shadow: 0 0 5px rgba(255, 204, 0, 0.6); }
@@ -1479,4 +1484,739 @@ body.lastchance-mode {
     padding: 2px 0;
     font-family: inherit;
     transition: opacity 0.5s;
+}
+/* ============================================================
+   HUD MANUAL BUTTON
+   ============================================================ */
+.hud-manual-btn {
+    background: transparent;
+    border: 1px solid #33ff33;
+    color: #33ff33;
+    padding: 4px 14px;
+    font-family: 'Consolas', monospace;
+    font-size: 0.78rem;
+    font-weight: bold;
+    letter-spacing: 1px;
+    cursor: pointer;
+    transition: all 0.15s;
+}
+.hud-manual-btn:hover {
+    background: #33ff33;
+    color: #000;
+    box-shadow: 0 0 12px rgba(51, 255, 51, 0.7);
+}
+
+/* ============================================================
+   TUTORIAL — LIBRO INTERACTIVO
+   ============================================================ */
+#tutorial-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 9995;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: Georgia, 'Times New Roman', serif;
+}
+
+.tutorial-backdrop {
+    position: absolute;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.92);
+    backdrop-filter: blur(3px);
+}
+
+.tutorial-wrapper {
+    position: relative;
+    z-index: 1;
+    width: min(1400px, 96vw);
+    height: min(900px, 94vh);
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    opacity: 0;
+    animation: tutFadeIn 0.6s ease-out 0.1s forwards;
+}
+
+@keyframes tutFadeIn {
+    to { opacity: 1; }
+}
+
+.tutorial-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-shrink: 0;
+    padding: 0 4px;
+}
+
+.tutorial-title {
+    color: #ffd88a;
+    font-size: 1.4rem;
+    letter-spacing: 3px;
+    text-shadow: 0 0 12px rgba(255, 216, 138, 0.6);
+    font-weight: bold;
+}
+
+.tutorial-close {
+    background: transparent;
+    border: 2px solid #ffd88a;
+    color: #ffd88a;
+    padding: 8px 20px;
+    font-family: inherit;
+    font-size: 0.95rem;
+    font-weight: bold;
+    letter-spacing: 2px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+.tutorial-close:hover { background: #ffd88a; color: #2a1a0e; }
+
+/* ---- LIBRO: contenedor simple, sin 3D ---- */
+.tutorial-book {
+    flex: 1;
+    min-height: 0;
+    position: relative;
+}
+
+/* ---- PÁGINAS: dos mitades, cada una scrollea ---- */
+.book-pages {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    border-radius: 6px;
+    overflow: hidden;
+    background:
+        radial-gradient(ellipse at 50% 50%, rgba(255, 216, 138, 0.05) 0%, transparent 70%),
+        linear-gradient(135deg, #3a2410 0%, #5a3a1a 30%, #2a1a0e 70%, #4a2e15 100%);
+    box-shadow:
+        0 30px 80px rgba(0, 0, 0, 0.9),
+        0 10px 30px rgba(0, 0, 0, 0.7);
+}
+
+.book-page {
+    width: 50%;
+    height: 100%;
+    padding: 40px 44px 60px 44px;
+    box-sizing: border-box;
+    overflow-y: auto;
+    overflow-x: hidden;
+    color: #2a1f0a;
+    font-size: 15px;
+    line-height: 1.65;
+    background:
+        radial-gradient(ellipse at 15% 20%, rgba(180, 150, 100, 0.10) 0%, transparent 55%),
+        radial-gradient(ellipse at 85% 75%, rgba(180, 150, 100, 0.10) 0%, transparent 55%),
+        linear-gradient(180deg, #f6eed7 0%, #f0e4c8 50%, #f6eed7 100%);
+    position: relative;
+}
+
+.book-page-left  { box-shadow: inset -30px 0 40px -20px rgba(0, 0, 0, 0.28); }
+.book-page-right { box-shadow: inset  30px 0 40px -20px rgba(0, 0, 0, 0.28); }
+
+.book-page::-webkit-scrollbar { width: 6px; }
+.book-page::-webkit-scrollbar-track { background: transparent; }
+.book-page::-webkit-scrollbar-thumb {
+    background: rgba(120, 90, 40, 0.5);
+    border-radius: 3px;
+}
+.book-page::-webkit-scrollbar-thumb:hover { background: rgba(120, 90, 40, 0.8); }
+
+/* ---- PORTADA: fade-out simple, sin rotación ---- */
+.book-cover {
+    position: absolute;
+    inset: 0;
+    z-index: 10;
+    border-radius: 6px;
+    opacity: 1;
+    transition: opacity 0.6s ease-out, transform 0.6s ease-out;
+    background:
+        radial-gradient(ellipse at 50% 50%, rgba(255, 216, 138, 0.08) 0%, transparent 70%),
+        linear-gradient(135deg, #3a2410 0%, #5a3a1a 30%, #2a1a0e 70%, #4a2e15 100%);
+    box-shadow:
+        inset 0 0 0 3px rgba(255, 216, 138, 0.2),
+        inset 0 0 100px rgba(0, 0, 0, 0.7),
+        0 0 40px rgba(0, 0, 0, 0.9);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 40px 30px;
+    box-sizing: border-box;
+}
+
+.book-cover.opened {
+    opacity: 0;
+    transform: scale(0.97);
+    pointer-events: none;
+}
+
+.book-cover-front {
+    text-align: center;
+    color: #ffd88a;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 14px;
+}
+
+.book-cover-title {
+    font-size: 3rem;
+    letter-spacing: 8px;
+    font-weight: bold;
+    line-height: 1.15;
+    border-top: 3px double rgba(255, 216, 138, 0.55);
+    border-bottom: 3px double rgba(255, 216, 138, 0.55);
+    padding: 20px 10px;
+    text-shadow: 0 0 22px rgba(255, 216, 138, 0.55), 0 4px 10px rgba(0, 0, 0, 0.95);
+}
+
+.book-cover-sub {
+    font-size: 1rem;
+    letter-spacing: 7px;
+    color: #d4b478;
+    margin-top: 6px;
+}
+
+.book-cover-edition {
+    font-size: 0.82rem;
+    color: #a8885a;
+    font-style: italic;
+    letter-spacing: 2px;
+    margin-top: 12px;
+}
+
+.book-cover-decor {
+    font-size: 1.2rem;
+    letter-spacing: 12px;
+    color: #ffd88a;
+    opacity: 0.7;
+}
+
+/* ---- FOOTER con botones de navegación ---- */
+.tutorial-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-shrink: 0;
+    padding: 0 4px;
+}
+
+.tut-nav-btn {
+    background: transparent;
+    border: 2px solid #ffd88a;
+    color: #ffd88a;
+    padding: 10px 26px;
+    font-family: inherit;
+    font-size: 0.92rem;
+    font-weight: bold;
+    letter-spacing: 2px;
+    cursor: pointer;
+    min-width: 170px;
+    transition: all 0.2s;
+}
+.tut-nav-btn:hover:not(:disabled) {
+    background: #ffd88a;
+    color: #2a1a0e;
+    box-shadow: 0 0 18px rgba(255, 216, 138, 0.8);
+}
+.tut-nav-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+
+.tut-page-indicator {
+    color: #ffd88a;
+    font-size: 1rem;
+    letter-spacing: 4px;
+    font-weight: bold;
+}
+
+/* ---- CONTENIDO INTERNO de las páginas ---- */
+.book-content h2 {
+    font-size: 1.35rem;
+    color: #5c3a15;
+    border-bottom: 2px solid rgba(120, 90, 40, 0.35);
+    padding-bottom: 8px;
+    margin-bottom: 14px;
+}
+.book-content h3 {
+    font-size: 1.05rem;
+    color: #6b4420;
+    margin: 14px 0 7px 0;
+}
+.book-content p { margin-bottom: 9px; text-align: justify; }
+.book-content ul { list-style: none; padding-left: 2px; margin-bottom: 9px; }
+.book-content li { padding: 2px 0 2px 20px; position: relative; }
+.book-content li::before {
+    content: '▸';
+    position: absolute;
+    left: 0;
+    color: #8a5a20;
+    font-weight: bold;
+}
+.book-content code {
+    background: rgba(120, 90, 40, 0.18);
+    color: #5c3a15;
+    padding: 1px 6px;
+    border-radius: 3px;
+    font-family: 'Consolas', monospace;
+    font-size: 0.88em;
+    font-weight: bold;
+}
+.book-content .book-highlight {
+    background: rgba(200, 160, 60, 0.18);
+    border-left: 3px solid #8a5a20;
+    padding: 10px 14px;
+    margin: 12px 0;
+    font-style: italic;
+    border-radius: 0 4px 4px 0;
+}
+.book-content .book-step {
+    background: rgba(140, 100, 50, 0.10);
+    border-radius: 6px;
+    padding: 8px 12px;
+    margin: 7px 0;
+    border-left: 3px solid #6b4420;
+}
+.book-content .book-step b { color: #5c3a15; }
+.book-prompt-demo {
+    text-align: center;
+    font-family: 'Consolas', monospace;
+    background: rgba(0, 0, 0, 0.08);
+    padding: 9px;
+    border-radius: 3px;
+    font-weight: bold;
+    letter-spacing: 1px;
+    font-size: 0.95em;
+}
+.book-page-number {
+    position: absolute;
+    bottom: 20px;
+    font-size: 0.8rem;
+    color: #8a5a20;
+    font-style: italic;
+    pointer-events: none;
+}
+.book-page-left  .book-page-number { left: 22px; }
+.book-page-right .book-page-number { right: 22px; }
+/* ============================================================
+   PC BOOT ANIMATION — arranque tipo CRT con scroll + staged load
+   ============================================================ */
+
+/* ---- Overlay de boot ---- */
+#pc-boot-overlay {
+    position: fixed;
+    inset: 0;
+    background: #000;
+    z-index: 2500;
+    display: none;
+    flex-direction: column;
+    font-family: 'Consolas', 'Courier New', monospace;
+    overflow: hidden;
+}
+
+#pc-boot-overlay.crt-powering {
+    animation: pcBootCRT 1.8s ease-out forwards;
+}
+@keyframes pcBootCRT {
+    0%   { filter: brightness(0); }
+    10%  { filter: brightness(6) blur(20px); }
+    28%  { filter: brightness(3.2) blur(11px); }
+    52%  { filter: brightness(1.9) blur(5px); }
+    76%  { filter: brightness(1.3) blur(2px); }
+    100% { filter: brightness(1) blur(0); }
+}
+
+#pc-boot-overlay.crt-powering::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+        to bottom,
+        rgba(0, 255, 0, 0)    0%,
+        rgba(0, 255, 0, 0.85) 49%,
+        rgba(0, 255, 0, 0)    51%
+    );
+    pointer-events: none;
+    animation: pcBootSweepUp 1.9s ease-out forwards;
+    z-index: 3;
+}
+@keyframes pcBootSweepUp {
+    0%   { transform: translateY(-100%) scaleY(10); opacity: 1; }
+    45%  { transform: translateY(0)     scaleY(1);  opacity: 0.85; }
+    100% { transform: translateY(100%)  scaleY(0.2); opacity: 0; }
+}
+
+#pc-boot-overlay.crt-on::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: repeating-linear-gradient(
+        0deg,
+        rgba(0, 255, 0, 0.05) 0px,
+        rgba(0, 255, 0, 0.05) 1px,
+        transparent 1px,
+        transparent 3px
+    );
+    pointer-events: none;
+    z-index: 1;
+    animation: crtFlicker 0.15s infinite;
+}
+
+/* ---- Contenedor con scroll ---- */
+.pc-boot-screen {
+    width: 100%;
+    height: 100%;
+    padding: 30px 40px;
+    box-sizing: border-box;
+    position: relative;
+    z-index: 2;
+    overflow-y: auto;
+    overflow-x: hidden;
+    scrollbar-width: none;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;    /* ← ancla el texto abajo SIN margin-top:auto */
+}
+.pc-boot-screen::-webkit-scrollbar { display: none; }
+
+.pc-boot-text {
+    color: #0f0;
+    font-size: 0.88rem;
+    line-height: 1.55;
+    white-space: pre-wrap;
+    text-shadow:
+        0 0 4px rgba(0, 255, 0, 0.85),
+        0 0 10px rgba(0, 255, 0, 0.35);
+    letter-spacing: 1px;
+    overflow-wrap: anywhere;      /* ← corta bien las líneas largas */
+    word-break: break-word;
+    /* SIN margin-top:auto — eso rompía el scroll cuando el contenido crecía */
+    flex: 0 0 auto;
+}
+.pc-boot-text::after {
+    content: '█';
+    color: #0f0;
+    animation: pcBootCursor 0.7s step-end infinite;
+    margin-left: 2px;
+}
+@keyframes pcBootCursor {
+    0%, 50%   { opacity: 1; }
+    51%, 100% { opacity: 0; }
+}
+
+/* ============================================================
+   STAGED LOAD — revelado progresivo del HUD
+   ============================================================ */
+
+/* Estado inicial: top-bar y main-content ocultos */
+body.booting .top-bar,
+body.booting .center-panel,
+body.booting .right-panel {
+    opacity: 0;
+    visibility: hidden;
+}
+
+/* Reveal del top-bar */
+body.booting.boot-topbar .top-bar {
+    opacity: 1;
+    visibility: visible;
+    transition: opacity 0.5s ease-out;
+}
+
+/* Reveal del right-panel */
+body.booting.boot-right .top-bar,
+body.booting.boot-right .right-panel {
+    opacity: 1;
+    visibility: visible;
+    transition: opacity 0.5s ease-out;
+}
+
+/* Reveal del center-panel */
+body.booting.boot-center .top-bar,
+body.booting.boot-center .right-panel,
+body.booting.boot-center .center-panel {
+    opacity: 1;
+    visibility: visible;
+    transition: opacity 0.5s ease-out;
+}
+
+/* ============================================================
+   SPINNER de carga en cada sección
+   ============================================================ */
+.top-bar,
+.center-panel,
+.right-panel {
+    position: relative;
+}
+
+/* Transición de opacidad en hijos (para cuando sacamos .loading) */
+.top-bar > *,
+.center-panel > *,
+.right-panel > * {
+    transition: opacity 0.35s ease-out;
+}
+
+/* Ocultar contenido mientras carga */
+.top-bar.loading > *,
+.center-panel.loading > *,
+.right-panel.loading > * {
+    opacity: 0;
+    visibility: hidden;
+}
+
+/* Spinner circular estilo "cargando video" */
+.top-bar.loading::after,
+.center-panel.loading::after,
+.right-panel.loading::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 26px;
+    height: 26px;
+    margin-top: -13px;
+    margin-left: -13px;
+    border: 3px solid rgba(0, 255, 0, 0.15);
+    border-top-color: #0f0;
+    border-radius: 50%;
+    animation: bootSpin 0.75s linear infinite;
+    box-shadow: 0 0 18px rgba(0, 255, 0, 0.55);
+    z-index: 10;
+    pointer-events: none;
+}
+@keyframes bootSpin {
+    to { transform: rotate(360deg); }
+}
+/* ============================================================
+   FADE-IN LIMPIO AL RESTAURAR PARTIDA (reload durante juego)
+   ============================================================ */
+body.ui-fade-in .top-bar,
+body.ui-fade-in .center-panel,
+body.ui-fade-in .right-panel {
+    animation: softFadeIn 0.55s ease-out both;
+}
+body.ui-fade-in .top-bar     { animation-delay: 0.00s; }
+body.ui-fade-in .center-panel{ animation-delay: 0.10s; }
+body.ui-fade-in .right-panel { animation-delay: 0.18s; }
+
+@keyframes softFadeIn {
+    from { opacity: 0; transform: translateY(4px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+/* ============================================================
+   PC POWER BUTTON — botón de encendido (rojo vino)
+   ============================================================ */
+.pc-power-btn-wrapper {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    width: 100%;
+    gap: 38px;
+    animation: powerFadeIn 0.6s ease-out;
+}
+@keyframes powerFadeIn {
+    from { opacity: 0; transform: scale(0.95); }
+    to   { opacity: 1; transform: scale(1); }
+}
+
+.pc-power-btn {
+    width: 155px;
+    height: 155px;
+    border-radius: 50%;
+    background: radial-gradient(circle at 32% 28%, #3a0a0a 0%, #180404 55%, #050101 100%);
+    border: 3px solid #8b1a1a;
+    color: #8b1a1a;
+    cursor: pointer;
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: transform 0.2s ease, box-shadow 0.3s ease, border-color 0.3s ease, color 0.3s ease, background 0.3s ease;
+    box-shadow:
+        0 0 22px rgba(180, 20, 20, 0.40),
+        inset 0 0 24px rgba(180, 20, 20, 0.14);
+    animation: powerPulse 2.2s infinite;
+    padding: 0;
+    outline: none;
+    -webkit-tap-highlight-color: transparent;
+}
+@keyframes powerPulse {
+    0%, 100% {
+        box-shadow:
+            0 0 22px rgba(180, 20, 20, 0.40),
+            inset 0 0 24px rgba(180, 20, 20, 0.14);
+    }
+    50% {
+        box-shadow:
+            0 0 48px rgba(220, 30, 30, 0.80),
+            inset 0 0 34px rgba(220, 30, 30, 0.32);
+    }
+}
+
+/* Hover: se ilumina fuerte */
+.pc-power-btn:hover,
+.pc-power-btn:focus-visible {
+    transform: scale(1.06);
+    border-color: #ff3030;
+    color: #ff4444;
+    background: radial-gradient(circle at 32% 28%, #5a1010 0%, #240606 55%, #0a0202 100%);
+    box-shadow:
+        0 0 80px rgba(255, 40, 40, 1),
+        0 0 140px rgba(255, 40, 40, 0.55),
+        inset 0 0 50px rgba(255, 60, 60, 0.60);
+    animation: none;
+}
+
+/* Click / encendido */
+.pc-power-btn:active,
+.pc-power-btn.pressed {
+    transform: scale(0.94);
+    background: radial-gradient(circle at 50% 50%, #ff2828 0%, #6a0a0a 60%, #0a0202 100%);
+    border-color: #ffffff;
+    color: #ffffff;
+    box-shadow:
+        0 0 130px rgba(255, 40, 40, 1),
+        0 0 280px rgba(255, 40, 40, 0.85),
+        inset 0 0 90px rgba(255, 120, 120, 0.95);
+    animation: none;
+    transition: transform 0.08s ease, box-shadow 0.08s ease, background 0.08s ease;
+}
+.pc-power-btn:disabled {
+    cursor: default;
+    animation: none;
+}
+
+/* Ícono SVG */
+.pc-power-icon {
+    width: 74px;
+    height: 74px;
+    display: block;
+    pointer-events: none;
+    filter: drop-shadow(0 0 8px currentColor) drop-shadow(0 0 18px currentColor);
+    transition: filter 0.3s ease;
+}
+.pc-power-btn:hover .pc-power-icon,
+.pc-power-btn:focus-visible .pc-power-icon {
+    filter:
+        drop-shadow(0 0 12px currentColor)
+        drop-shadow(0 0 28px currentColor)
+        drop-shadow(0 0 50px currentColor);
+}
+
+.pc-power-hint {
+    color: #8b1a1a;
+    font-family: 'Consolas', monospace;
+    font-size: 0.82rem;
+    letter-spacing: 5px;
+    text-shadow: 0 0 10px rgba(180, 20, 20, 0.75);
+    animation: powerHintBlink 1.9s infinite;
+    user-select: none;
+    transition: color 0.3s ease, text-shadow 0.3s ease;
+}
+@keyframes powerHintBlink {
+    0%, 100% { opacity: 1; }
+    50%      { opacity: 0.35; }
+}
+/* ============================================================
+   SETUP LOADER — animación de carga antes del setup
+   ============================================================ */
+.setup-loader {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 26px;
+    padding: 30px 40px;
+    min-width: 420px;
+    animation: setupLoaderFadeIn 0.5s ease-out;
+}
+@keyframes setupLoaderFadeIn {
+    from { opacity: 0; transform: translateY(8px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+.setup-loader-title {
+    font-size: 2.2rem;
+    color: #33ff33;
+    letter-spacing: 4px;
+    text-shadow: 0 0 12px rgba(51, 255, 51, 0.9);
+    font-weight: bold;
+    animation: setupLoaderTitleGlow 2s infinite;
+    text-align: center;
+}
+@keyframes setupLoaderTitleGlow {
+    0%, 100% { text-shadow: 0 0 12px rgba(51, 255, 51, 0.9); }
+    50%      { text-shadow: 0 0 28px rgba(51, 255, 51, 1), 0 0 50px rgba(51, 255, 51, 0.7); }
+}
+
+.setup-loader-status {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    color: #33ff33;
+    font-family: 'Consolas', monospace;
+    font-size: 0.92rem;
+    letter-spacing: 1.5px;
+    min-height: 24px;
+    text-shadow: 0 0 6px rgba(51, 255, 51, 0.6);
+}
+
+.setup-loader-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #33ff33;
+    box-shadow: 0 0 10px #33ff33, 0 0 20px rgba(51, 255, 51, 0.6);
+    animation: setupLoaderDotPulse 1s infinite;
+    flex-shrink: 0;
+}
+@keyframes setupLoaderDotPulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50%      { opacity: 0.3; transform: scale(0.7); }
+}
+
+.setup-loader-bar {
+    width: 100%;
+    max-width: 380px;
+    height: 8px;
+    border: 1px solid #0f0;
+    background: #000;
+    position: relative;
+    overflow: hidden;
+    box-shadow: 0 0 12px rgba(0, 255, 0, 0.3);
+}
+
+.setup-loader-bar-fill {
+    height: 100%;
+    width: 0%;
+    background: linear-gradient(90deg, #0f0, #33ff33, #0f0);
+    background-size: 200% 100%;
+    box-shadow: 0 0 12px rgba(51, 255, 51, 0.9);
+    transition: width 0.15s linear;
+    animation: setupLoaderBarShine 1.6s linear infinite;
+}
+@keyframes setupLoaderBarShine {
+    0%   { background-position: 0% 0; }
+    100% { background-position: 200% 0; }
+}
+
+.setup-loader-percent {
+    color: #33ff33;
+    font-family: 'Consolas', monospace;
+    font-size: 0.85rem;
+    letter-spacing: 3px;
+    text-shadow: 0 0 6px rgba(51, 255, 51, 0.7);
+    min-width: 50px;
+    text-align: center;
+}
+
+/* Fade-in del form cuando termina el loader */
+#setup-overlay .setup-title,
+#setup-overlay .setup-subtitle,
+#setup-overlay .setup-box {
+    animation: setupFormFadeIn 0.6s ease-out;
+}
+@keyframes setupFormFadeIn {
+    from { opacity: 0; transform: translateY(12px); }
+    to   { opacity: 1; transform: translateY(0); }
 }

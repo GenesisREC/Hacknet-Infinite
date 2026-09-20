@@ -6,13 +6,21 @@
 <link rel="icon" type="image/png" href="favicon.png">
 <link rel="stylesheet" href="styles.css">
 </head>
-<body>
+<body class="booting">
 
 <div class="scanlines"></div>
-
+<!-- ============================================================
+     PC BOOT ANIMATION (encendido de la PC)
+     ============================================================ -->
+<div id="pc-boot-overlay">
+    <div class="pc-boot-screen">
+        <div class="pc-boot-text" id="pc-boot-text"></div>
+    </div>
+</div>
 <!-- ============================================================
      SETUP INICIAL
      ============================================================ -->
+
 <div id="setup-overlay">
     <div class="setup-title">HACKNET INFINITE</div>
     <div class="setup-subtitle">// CONFIGURACIÓN INICIAL DE TU PC //</div>
@@ -233,6 +241,7 @@
      ============================================================ -->
 <div class="top-bar">
     <span id="conn-status">DESCONECTADO</span>
+    <button class="hud-manual-btn" onclick="openTutorial()" title="Manual de usuario (F1)">MANUAL</button>
     <span id="trace-timer">RASTREO: --:--</span>
 </div>
 
@@ -295,7 +304,38 @@
         </div>
     </div>
 </div>
-
+<!-- ============================================================
+     TUTORIAL — LIBRO INTERACTIVO
+     ============================================================ -->
+<div id="tutorial-overlay" style="display:none;">
+    <div class="tutorial-backdrop" onclick="closeTutorial()"></div>
+    <div class="tutorial-wrapper">
+        <div class="tutorial-header">
+            <div class="tutorial-title">Manual de Usuario y Tutorial</div>
+            <button class="tutorial-close" onclick="closeTutorial()">CERRAR</button>
+        </div>
+        <div class="tutorial-book" id="tutorial-book">
+            <div class="book-pages">
+                <div class="book-page book-page-left" id="book-left"></div>
+                <div class="book-page book-page-right" id="book-right"></div>
+            </div>
+            <div class="book-cover" id="book-cover">
+                <div class="book-cover-front">
+                    <div class="book-cover-decor">◆ ◆ ◆</div>
+                    <div class="book-cover-title">HACKNET<br>INFINITE</div>
+                    <div class="book-cover-sub">MANUAL DE USUARIO</div>
+                    <div class="book-cover-edition">Primera Edición · Guía del Operador</div>
+                    <div class="book-cover-decor" style="margin-top: 36px;">◆ ◆ ◆</div>
+                </div>
+            </div>
+        </div>
+        <div class="tutorial-footer">
+            <button class="tut-nav-btn" id="book-prev-btn" onclick="tutorialPrevPage()">◀ ANTERIOR</button>
+            <span class="tut-page-indicator" id="book-indicator">1 / 7</span>
+            <button class="tut-nav-btn" id="book-next-btn" onclick="tutorialNextPage()">SIGUIENTE ▶</button>
+        </div>
+    </div>
+</div>
 <!-- ============================================================
      SCRIPTS — ORDEN IMPORTANTE
      ============================================================ -->
@@ -304,6 +344,7 @@
 <script src="state.js"></script>
 <script src="animations.js"></script>
 <script src="wallbreaker.js"></script>
+<script src="tutorial.js"></script>
 <script src="netmap.js"></script>
 <script src="processes.js"></script>
 <script src="market.js"></script>

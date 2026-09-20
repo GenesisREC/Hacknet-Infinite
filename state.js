@@ -1,4 +1,5 @@
 const gameState = {
+    probeUnlocked: false,
     localUser: 'user',
     localPass: '1234',
     setupComplete: false,
@@ -28,6 +29,7 @@ const gameState = {
     marketSession: false,
     inMarket: false,
     connectOverlayOpen: false,
+    tutorialOpen: false,
     pendingReset: false,
     marketFormMode: 'login',
     hacknetFormMode: 'login',

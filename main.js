@@ -133,7 +133,8 @@ input.addEventListener('keydown', (e) => {
     // Inicializar audio en el primer gesto
     initAudio();
 
-    if (gameState.isDeleting) { e.preventDefault(); return; }
+	if (gameState.tutorialOpen) { e.preventDefault(); return; }
+    	if (gameState.isDeleting) { e.preventDefault(); return; }
 
     // Sonido de tecleo (excepto teclas de control)
     if (e.key.length === 1 || e.key === 'Backspace') {
@@ -214,13 +215,25 @@ if (rawSave) {
     try { savedVersion = JSON.parse(rawSave).version || 0; } catch(e) {}
 }
 
+function _revealHUD(withFade) {
+    document.body.classList.remove('booting', 'boot-topbar', 'boot-right', 'boot-center');
+    document.body.classList.remove('ui-booting');
+    if (withFade) {
+        document.body.classList.add('ui-fade-in');
+        setTimeout(() => document.body.classList.remove('ui-fade-in'), 750);
+    } else {
+        document.body.classList.add('ui-visible');
+    }
+}
+
 if (pendingLC) {
-    // Reinicio durante una fase de last-chance → restaurar
     if (savedVersion === 3) {
         const restored = loadGame();
         if (restored) {
             if (pendingLC.phase === 'pending') {
-                // Estaba en terminal blanca → replay del shutdown
+                // Replay de la terminal blanca — HUD sigue oculto hasta que
+                // enterWhiteTerminal muestre su propio overlay
+                _revealHUD(false);
                 if (typeof enterWhiteTerminal === 'function') {
                     enterWhiteTerminal();
                 } else {
@@ -229,7 +242,7 @@ if (pendingLC) {
                     input.focus();
                 }
             } else if (pendingLC.phase === 'active' && pendingLC.timeLeft > 0) {
-                // Estaba en modo emergencia → retomar con tiempo y objetivo guardados
+                _revealHUD(false);
                 if (typeof resumeLastChance === 'function') {
                     resumeLastChance(pendingLC);
                 } else {
@@ -238,6 +251,7 @@ if (pendingLC) {
                     input.focus();
                 }
             } else {
+                _revealHUD(true);
                 clearPersistedLastChance();
                 updateUI();
                 input.focus();
@@ -246,6 +260,7 @@ if (pendingLC) {
         } else {
             clearPersistedLastChance();
             clearSave();
+            // Setup: seguimos con body.booting, startSetup mantiene el HUD oculto
             startSetup();
         }
     } else {
@@ -255,13 +270,15 @@ if (pendingLC) {
     }
 } else if (savedVersion !== 3) {
     localStorage.removeItem(SAVE_KEY);
-    startSetup();
+    showPowerAndBoot(() => startSetup());
 } else {
     const restored = loadGame();
     if (!restored) {
         clearSave();
         startSetup();
     } else {
+        // Reload con save válido: sacamos booting y hacemos fade-in
+        _revealHUD(true);
         updateUI();
         input.focus();
         if (gameState.netmapOpen) startNetmapAnim();
