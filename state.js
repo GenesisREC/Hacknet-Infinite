@@ -50,6 +50,12 @@ const gameState = {
     newsTab: 'latest',
     newsLog: [],
     newsCounter: 0,
+    
+    // ==== ANTI-DUPLICADOS (flavor) ====
+    usedFlavorIds: [],
+
+      // ==== ANTI-DUPLICADOS ====
+    downloadedFileIds: [],
 
     // ==== MISIONES ====
     missionAccount: null,
@@ -681,6 +687,9 @@ function createServerFS(tier, profile, ports) {
             if (!fs['/bin'].children.includes(tname)) fs['/bin'].children.push(tname);
         }
     }
+    if (typeof injectFlavorFiles === 'function') {
+        injectFlavorFiles(fs, tier, profile);
+    }    
 
     return fs;
 }
@@ -979,10 +988,10 @@ function createServerObject(ip, netIndex, tier, opts) {
         profileLabel: profile.label,
         primaryDir: getLayoutForProfile(profile.id).primaryDir,
         firewall: firewall,
-        fs: createServerFS(tier, profile, ports)
+        fs: createServerFS(tier, profile, ports),
+        identity: generateServerIdentity(profile.id)
     };
 }
-
 // ============================================================
 // PROBE SERVER
 // ============================================================
@@ -1368,6 +1377,8 @@ function saveGame() {
     if (gameState.gamePhase === 'white-terminal') return;
     if (gameState.gamePhase === 'game-over') return;
     if (gameState.localUser === undefined) return;
+
+    let serialized;
     try {
         const save = {
             version: SAVE_VERSION,
@@ -1425,11 +1436,72 @@ function saveGame() {
             lastMissionSpawn: gameState.lastMissionSpawn,
             missionCounter: gameState.missionCounter,
             newsLog: gameState.newsLog || [],
-            newsCounter: gameState.newsCounter || 0
+            newsCounter: gameState.newsCounter || 0,
+            downloadedFileIds: gameState.downloadedFileIds || [],
+            usedFlavorIds: gameState.usedFlavorIds || []
         };
-        localStorage.setItem(SAVE_KEY, JSON.stringify(save));
-	try { SAVE_KEY_LEGACY.forEach(k => localStorage.removeItem(k)); } catch(e) {}
-    } catch(e) { console.warn('No se pudo guardar la sesión:', e); }
+        serialized = JSON.stringify(save);
+    } catch (serErr) {
+        console.warn('[save] No se pudo serializar el estado:', serErr);
+        return;
+    }
+
+    // 1º intento: save completo
+    try {
+        localStorage.setItem(SAVE_KEY, serialized);
+        try { SAVE_KEY_LEGACY.forEach(k => localStorage.removeItem(k)); } catch(e) {}
+        return;
+    } catch (e) {
+        const isQuota = e && (e.name === 'QuotaExceededError' ||
+                              e.name === 'NS_ERROR_DOM_QUOTA_REACHED' ||
+                              e.code === 22 || e.code === 1014);
+        if (!isQuota) {
+            console.warn('[save] Error guardando la sesión:', e);
+            return;
+        }
+        console.warn('[save] Quota de localStorage excedida. Limpiando claves legacy y reintentando…');
+    }
+
+    // 2º intento: borramos legacy y reintentamos
+    try { SAVE_KEY_LEGACY.forEach(k => localStorage.removeItem(k)); } catch(e) {}
+    try {
+        localStorage.setItem(SAVE_KEY, serialized);
+        return;
+    } catch (e) {
+        console.warn('[save] Sigue sin entrar. Guardando versión reducida (sin newsLog/remoteFS).');
+    }
+
+    // 3º intento: save reducido (sin news log ni remoteFS, que son lo más pesado)
+    try {
+        const minimal = {
+            version: SAVE_VERSION,
+            localUser: gameState.localUser,
+            localPass: gameState.localPass,
+            servers: gameState.servers,
+            tools: gameState.tools,
+            maxRam: gameState.maxRam,
+            ramUpgradeLevel: gameState.ramUpgradeLevel,
+            hardware: gameState.hardware,
+            localFS: localFS,
+            remoteFS: {},
+            localCWD: localCWD,
+            remoteCWD: remoteCWD,
+            money: gameState.money,
+            wallbreakerObtained: gameState.wallbreakerObtained,
+            missionAccount: gameState.missionAccount,
+            gomailAccount: gameState.gomailAccount,
+            gomailLinked: gameState.gomailLinked,
+            marketAccount: gameState.marketAccount,
+            missionCounter: gameState.missionCounter,
+            lastKnownTier: gameState.lastKnownTier,
+            usedFlavorIds: gameState.usedFlavorIds || [],
+            downloadedFileIds: gameState.downloadedFileIds || []
+        };
+        localStorage.setItem(SAVE_KEY, JSON.stringify(minimal));
+        console.warn('[save] Guardado en MODO REDUCIDO (perdés news y FS remoto).');
+    } catch (e2) {
+        console.error('[save] No se pudo guardar ni en modo reducido:', e2);
+    }
 }
 
 // ============================================================
@@ -1525,32 +1597,36 @@ try {
 
         gameState.newsLog = save.newsLog || [];
         gameState.newsCounter = save.newsCounter || 0;
+        gameState.downloadedFileIds = save.downloadedFileIds || [];
+        gameState.usedFlavorIds = save.usedFlavorIds || [];
         gameState.inNews = false;
         gameState.newsOpen = false;
         gameState.newsTab = 'latest';
 
         gameState.servers.forEach((s, idx) => {
-            if (s.isProbeServer) return;
-            if (!s.credentials) {
-                s.credentials = {
-                    user: USERNAME_POOL[Math.floor(Math.random() * USERNAME_POOL.length)],
-                    pass: PASSWORD_POOL[Math.floor(Math.random() * PASSWORD_POOL.length)]
-                };
-            }
-            if (s.credentialsRevealed === undefined) s.credentialsRevealed = false;
-            if (s.savedCredentials === undefined) s.savedCredentials = null;
-            if (s.downloadsDuringSession === undefined) s.downloadsDuringSession = 0;
-            if (s.quickTraceTriggered === undefined) s.quickTraceTriggered = false;
-            if (s.pinned === undefined) s.pinned = false;
-            if (s.netIndex === undefined) s.netIndex = idx;
-            if (s.tier === undefined) s.tier = getPlayerTier();
-            if (s.profile === undefined) s.profile = 'mixed';
-            if (s.profileLabel === undefined) s.profileLabel = 'Servidor';
-            if (s.firewall === undefined) s.firewall = null;
-            if (s.fromMission === undefined) s.fromMission = null;
-            if (s.primaryDir === undefined) s.primaryDir = getLayoutForProfile(s.profile).primaryDir;
-            resetServerAccess(s);
-        });
+    if (s.isProbeServer) return;
+    if (!s.credentials) {
+        s.credentials = {
+            user: USERNAME_POOL[Math.floor(Math.random() * USERNAME_POOL.length)],
+            pass: PASSWORD_POOL[Math.floor(Math.random() * PASSWORD_POOL.length)]
+        };
+    }
+    if (s.credentialsRevealed === undefined) s.credentialsRevealed = false;
+    if (s.savedCredentials === undefined) s.savedCredentials = null;
+    if (s.downloadsDuringSession === undefined) s.downloadsDuringSession = 0;
+    if (s.quickTraceTriggered === undefined) s.quickTraceTriggered = false;
+    if (s.pinned === undefined) s.pinned = false;
+    if (s.netIndex === undefined) s.netIndex = idx;
+    if (s.tier === undefined) s.tier = getPlayerTier();
+    if (s.profile === undefined) s.profile = 'mixed';
+    if (s.profileLabel === undefined) s.profileLabel = 'Servidor';
+    if (s.firewall === undefined) s.firewall = null;
+    if (s.fromMission === undefined) s.fromMission = null;
+    if (s.primaryDir === undefined) s.primaryDir = getLayoutForProfile(s.profile).primaryDir;
+    if (s.identity === undefined) {
+        s.identity = generateServerIdentity(s.profile || 'mixed');
+    }
+});
 
         if (localFS['/bin'] && localFS['/bin'].children) {
             const orphanExes = localFS['/bin'].children.filter(name => {
@@ -1724,4 +1800,76 @@ function sendGomailEmail(from, subject, body, missionId) {
         missionId: missionId || null
     });
     if (gameState.gomailInbox.length > 50) gameState.gomailInbox.pop();
+}
+// ============================================================
+// FLAVOR FILES — Archivos chatarra únicos
+// ============================================================
+// Usamos un pool gigante (FLAVOR_FILES en lore.js). Cada partida
+// va marcando los que ya usó para que NUNCA se repitan.
+
+function getAvailableFlavorFiles() {
+    if (!Array.isArray(gameState.usedFlavorIds)) gameState.usedFlavorIds = [];
+    const used = new Set(gameState.usedFlavorIds);
+    return FLAVOR_FILES.filter(f => !used.has(f.id));
+}
+
+function pickRandomFlavorFiles(count) {
+    const available = getAvailableFlavorFiles();
+    if (available.length === 0) return [];
+    const shuffled = [...available].sort(() => Math.random() - 0.5);
+    return shuffled.slice(0, Math.min(count, shuffled.length));
+}
+
+function markFlavorUsed(id) {
+    if (!Array.isArray(gameState.usedFlavorIds)) gameState.usedFlavorIds = [];
+    if (!gameState.usedFlavorIds.includes(id)) {
+        gameState.usedFlavorIds.push(id);
+    }
+}
+
+function injectFlavorFiles(fs, tier, profile) {
+    const layout = getLayoutForProfile(profile.id || profile);
+    const dirs = layout.dirs.map(d => d.path);
+
+    // Probabilidad de que el server tenga flavors
+    // Los "lowvalue" tienen menos, los "database" tienen más
+    let baseChance = 0.6;
+    let maxCount = 2;
+    if (profile.id === 'database' || profile.id === 'backup') {
+        baseChance = 0.85; maxCount = 3;
+    } else if (profile.id === 'hacker') {
+        baseChance = 0.75; maxCount = 3;
+    } else if (profile.id === 'lowvalue') {
+        baseChance = 0.35; maxCount = 1;
+    }
+
+    if (Math.random() > baseChance) return 0;
+
+    const count = 1 + Math.floor(Math.random() * maxCount);
+    const picked = pickRandomFlavorFiles(count);
+
+    picked.forEach(fl => {
+        const targetDir = dirs[Math.floor(Math.random() * dirs.length)];
+        ensureDir(fs, targetDir);
+
+        // Renombrar si colisiona con un archivo existente
+        const finalName = getUniqueFileName(fs, targetDir, fl.name, []);
+        const finalPath = targetDir === '/' ? '/' + finalName : targetDir + '/' + finalName;
+
+        fs[finalPath] = {
+            type: 'file',
+            content: fl.content,
+            size: fl.size || 2.0,
+            category: 'basura',
+            value: 0,
+            isFlavor: true,
+            flavorId: fl.id
+        };
+        if (!fs[targetDir].children.includes(finalName)) {
+            fs[targetDir].children.push(finalName);
+        }
+        markFlavorUsed(fl.id);
+    });
+
+    return picked.length;
 }

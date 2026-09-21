@@ -157,8 +157,8 @@ async function deleteFilesSequentially(filesToDelete) {
             output.innerHTML += `<div class="msg-box"><span class="text-success">[✓] Log de conexión eliminado. Rastreo detenido.</span></div>`;
             output.scrollTop = output.scrollHeight;
             autoAdvanceMissionsOnEvent({ type: 'log_deleted', serverIP: gameState.currentIP });
-            if (typeof newsOnLogWiped === 'function' && gameState.currentIP) {
-                newsOnLogWiped(gameState.currentIP);
+                        if (typeof newsOnLogWiped === 'function' && gameState.currentServer) {
+                newsOnLogWiped(gameState.currentServer);
             }
         }
 
@@ -272,28 +272,32 @@ function handleHacknetCommand(cmd) {
     if (cmd.trim() !== '') { commandHistory.push(cmd); historyIndex = commandHistory.length; }
 
     switch (action) {
-                case 'help':
-    output.innerHTML += `<div class="msg-box">
-        <div class="text-success" style="margin-bottom:6px;">Comandos:</div>
-        <table class="help-table">
-            <tr><td>ls / cd / cat / rm / cp / mv</td><td>Navegación de archivos</td></tr>
-            <tr><td>scan [IP]</td><td>Escanear una IP puntual (misiones)</td></tr>
-            <tr><td>netmap / netmap scan</td><td>Mapa de red / escaneo</td></tr>
-            <tr><td>connect [IP]</td><td>Conectar</td></tr>
-            <tr><td>connect hacknet.onion</td><td>Tablón de contratos</td></tr>
-            <tr><td>connect gomail.com</td><td>Correo</td></tr>
-            <tr><td>connect market.onion</td><td>InfoMarket</td></tr>
-            <tr><td>connect probe.com</td><td>Servidor de pruebas</td></tr>
-            <tr><td>disconnect</td><td>Desconectar</td></tr>
-            <tr><td>probe / run [exe] [puerto]</td><td>Ataque</td></tr>
-            <tr><td>scp / unzip / porthack</td><td>Descarga / Zip / Acceso</td></tr>
-            <tr><td>wallbreaker</td><td>App firewall</td></tr>
-            <tr><td>hardware / tools / ps</td><td>Info</td></tr>
-            <tr><td>reset / clearsave</td><td>Reiniciar / Borrar</td></tr>
+                                                case 'help':
+    output.innerHTML += `<div class="msg-box" style="border-color:#ffaa44; padding:18px 22px;">
+
+        <div style="text-align:center; color:#ffaa44; font-weight:bold; letter-spacing:4px; font-size:1.05rem;
+                    border-bottom:1px dashed rgba(255,170,68,0.5); padding-bottom:12px; margin-bottom:16px;">
+            ▸ HACKNET.ONION — COMANDOS
+        </div>
+
+        <table class="help-table" style="margin-top:0;">
+            <tr><td>missions</td><td>Lista los contratos disponibles en el tablón</td></tr>
+            <tr><td>accept [ID]</td><td>Acepta un contrato del tablón</td></tr>
+            <tr><td>active</td><td>Muestra tus contratos activos y su progreso</td></tr>
+            <tr><td>claim [ID]</td><td>Reclama la recompensa de un contrato completado</td></tr>
+            <tr><td>abandon [ID]</td><td>Abandona un contrato en curso</td></tr>
+            <tr><td>wallet</td><td>Muestra tu saldo actual en créditos</td></tr>
+            <tr><td>exit</td><td>Cierra sesión y sale de HackNet</td></tr>
+            <tr><td>disconnect</td><td>Alias de <code>exit</code></td></tr>
         </table>
+
+        <div style="text-align:center; color:#aa8844; font-size:0.75rem; margin-top:16px;
+                    padding-top:10px; border-top:1px dashed rgba(255,170,68,0.35);">
+            Los detalles de cada contrato aceptado llegan a tu GoMail.
+        </div>
+
     </div>`;
     break;
-
                 case 'missions': {
             if (!gameState.hacknetSession) { output.innerHTML += `<span class="text-error">Iniciá sesión primero.</span><br>`; break; }
             refillMissionsPool();
@@ -603,26 +607,96 @@ function handleCommand(cmd) {
     }
 
     switch (action) {
-        case 'help':
-            output.innerHTML += `<div class="msg-box">
-                <div class="text-success" style="margin-bottom:6px;">Comandos:</div>
-                <table class="help-table">
-                    <tr><td>ls / cd / cat / rm / cp / mv</td><td>Navegación de archivos</td></tr>
-                    <tr><td>scan [IP]</td><td>Escanear una IP puntual (misiones)</td></tr>
-                    <tr><td>netmap / netmap scan</td><td>Mapa de red / escaneo</td></tr>
-                    <tr><td>connect [IP]</td><td>Conectar</td></tr>
-                    <tr><td>connect hacknet.onion</td><td>Tablón de contratos</td></tr>
-                    <tr><td>connect gomail.com</td><td>Correo</td></tr>
-                    <tr><td>connect market.onion</td><td>InfoMarket</td></tr>
-                    <tr><td>connect probe.com</td><td>Servidor de pruebas</td></tr>
-                    <tr><td>disconnect</td><td>Desconectar</td></tr>
-                    <tr><td>probe / run [exe] [puerto]</td><td>Ataque</td></tr>
-                    <tr><td>scp / unzip / porthack</td><td>Descarga / Zip / Acceso</td></tr>
-                    <tr><td>wallbreaker</td><td>App firewall</td></tr>
-                    <tr><td>hardware / tools / ps</td><td>Info</td></tr>
-                    <tr><td>reset / clearsave</td><td>Reiniciar / Borrar</td></tr>
-                    <tr><td>trace-speed [1-50]</td><td>Velocidad del rastreo</td></tr>
+                                case 'help':
+            output.innerHTML += `<div class="msg-box" style="border-color:#33ff33; padding:18px 22px;">
+
+                <div style="text-align:center; color:#33ff33; font-weight:bold; letter-spacing:4px; font-size:1.05rem;
+                            border-bottom:1px dashed rgba(51,255,51,0.5); padding-bottom:12px; margin-bottom:18px;">
+                    ▸ MANUAL DE COMANDOS
+                </div>
+
+                <!-- ================= NAVEGACIÓN LOCAL ================= -->
+                <div style="color:#33ff33; font-weight:bold; font-size:0.75rem; letter-spacing:2px;
+                            border-bottom:1px dashed rgba(51,255,51,0.35); padding-bottom:6px; margin:0 0 8px 0;">
+                    [ NAVEGACIÓN LOCAL ]
+                </div>
+                <table class="help-table" style="margin-top:0;">
+                    <tr><td>ls</td><td>Lista los archivos del directorio actual</td></tr>
+                    <tr><td>cd [dir]</td><td>Cambia de directorio · <code>cd ..</code> sube un nivel · <code>cd ~</code> va a /home/user</td></tr>
+                    <tr><td>cat [archivo]</td><td>Muestra el contenido de un archivo</td></tr>
+                    <tr><td>rm [archivo|*]</td><td>Borra un archivo o todo el directorio · <code>rm *</code> borra secuencialmente</td></tr>
+                    <tr><td>cp [orig] [dest]</td><td>Copia un archivo</td></tr>
+                    <tr><td>mv [orig] [dest]</td><td>Mueve o renombra un archivo</td></tr>
+                    <tr><td>clear</td><td>Limpia la pantalla de la terminal</td></tr>
                 </table>
+
+                <!-- ================= RED Y MAPA ================= -->
+                <div style="color:#33ccff; font-weight:bold; font-size:0.75rem; letter-spacing:2px;
+                            border-bottom:1px dashed rgba(51,204,255,0.35); padding-bottom:6px; margin:20px 0 8px 0;">
+                    [ RED Y MAPA ]
+                </div>
+                <table class="help-table" style="margin-top:0;">
+                    <tr><td>netmap</td><td>Abre o cierra el NetMap (consume 0.5 GB de RAM mientras esté abierto)</td></tr>
+                    <tr><td>netmap scan</td><td>Escanea la red en busca de nodos nuevos (consume RAM)</td></tr>
+                    <tr><td>netmap list</td><td>Lista todos los servidores que ya descubriste</td></tr>
+                    <tr><td>netmap pin [IP]</td><td>Fija un nodo en el mapa para no perderlo de vista</td></tr>
+                    <tr><td>netmap unpin [IP]</td><td>Quita el pin de un nodo</td></tr>
+                    <tr><td>netmap clear</td><td>Limpia del mapa los nodos no-fijados</td></tr>
+                    <tr><td>scan [IP]</td><td>Revela una IP puntual en el NetMap · ideal para misiones</td></tr>
+                </table>
+
+                <!-- ================= CONEXIÓN ================= -->
+                <div style="color:#ffcc00; font-weight:bold; font-size:0.75rem; letter-spacing:2px;
+                            border-bottom:1px dashed rgba(255,204,0,0.35); padding-bottom:6px; margin:20px 0 8px 0;">
+                    [ CONEXIÓN ]
+                </div>
+                <table class="help-table" style="margin-top:0;">
+                    <tr><td>connect [IP]</td><td>Abre una conexión a un servidor descubierto</td></tr>
+                    <tr><td>disconnect</td><td>Corta la conexión y detiene cualquier rastreo activo</td></tr>
+                </table>
+
+                <!-- ================= ATAQUE ================= -->
+                <div style="color:#ff5555; font-weight:bold; font-size:0.75rem; letter-spacing:2px;
+                            border-bottom:1px dashed rgba(255,85,85,0.35); padding-bottom:6px; margin:20px 0 8px 0;">
+                    [ ATAQUE ]
+                </div>
+                <table class="help-table" style="margin-top:0;">
+                    <tr><td>probe</td><td>Muestra los puertos del servidor conectado (¡inicia rastreo si el server lo tiene!)</td></tr>
+                    <tr><td>run [exe] [puerto]</td><td>Corre un cracker contra un puerto bloqueado · ej: <code>run ssh_crack.exe 22</code></td></tr>
+                    <tr><td>porthack [puertos...]</td><td>Abre un túnel inverso tras abrir los puertos requeridos · ej: <code>porthack 22 80</code></td></tr>
+                    <tr><td>login [user] [pass]</td><td>Autenticación con credenciales en el server</td></tr>
+                    <tr><td>wallbreaker</td><td>Abre la app de firewall (si tenés wallbreaker.exe)</td></tr>
+                </table>
+
+                <!-- ================= ARCHIVOS REMOTOS ================= -->
+                <div style="color:#33ccff; font-weight:bold; font-size:0.75rem; letter-spacing:2px;
+                            border-bottom:1px dashed rgba(51,204,255,0.35); padding-bottom:6px; margin:20px 0 8px 0;">
+                    [ ARCHIVOS REMOTOS ]
+                </div>
+                <table class="help-table" style="margin-top:0;">
+                    <tr><td>scp [archivo] [dest]</td><td>Descarga un archivo del server · los .exe van a /bin, el resto a /download</td></tr>
+                    <tr><td>unzip [zip] [pass]</td><td>Descomprime un ZIP protegido con contraseña</td></tr>
+                </table>
+
+                <!-- ================= SISTEMA ================= -->
+                <div style="color:#88ff88; font-weight:bold; font-size:0.75rem; letter-spacing:2px;
+                            border-bottom:1px dashed rgba(136,255,136,0.35); padding-bottom:6px; margin:20px 0 8px 0;">
+                    [ SISTEMA ]
+                </div>
+                <table class="help-table" style="margin-top:0;">
+                    <tr><td>tools</td><td>Lista las herramientas instaladas en /bin</td></tr>
+                    <tr><td>ps</td><td>Muestra los procesos activos y el uso de RAM</td></tr>
+                    <tr><td>hardware</td><td>Info de tu CPU, RAM y antena actual</td></tr>
+                    <tr><td>reset</td><td>Reinicia la partida (pide confirmación con <code>reset confirm</code>)</td></tr>
+                    <tr><td>clearsave</td><td>Borra el guardado y empieza de cero</td></tr>
+                    <tr><td>restart</td><td>Recarga el juego</td></tr>
+                </table>
+
+                <div style="text-align:center; color:#668866; font-size:0.75rem; margin-top:18px;
+                            padding-top:12px; border-top:1px dashed rgba(51,255,51,0.35);">
+                    Tip: <code style="color:#ffcc00;">TAB</code> autocompleta · <code style="color:#ffcc00;">↑ ↓</code> historial · <code style="color:#ffcc00;">F1</code> abre el manual completo
+                </div>
+
             </div>`;
             break;
 
@@ -675,19 +749,117 @@ function handleCommand(cmd) {
                 openWallbreakerApp();
                 break;
             }
-            if (wbSub === 'table') {
-                output.innerHTML += `<div class="msg-box"><div class="text-info" style="font-weight:bold; margin-bottom:6px;">TABLA HEX → ASCII</div><pre style="font-family:Consolas,monospace; color:#33ccff; font-size:0.85rem; line-height:1.4;">
-── ESPECIALES ────
-  0x23 → '#'   0x2E → '.'   0x5F → '_'
-── DÍGITOS ───────
-  0x30 → '0'   0x31 → '1'   0x32 → '2'   0x33 → '3'
-  0x34 → '4'   0x35 → '5'   0x36 → '6'   0x37 → '7'
-  0x38 → '8'   0x39 → '9'
-── MAYÚSCULAS ────
-  0x41 → 'A'   ...   0x5A → 'Z'
-── MINÚSCULAS ────
-  0x61 → 'a'   ...   0x7A → 'z'
-</pre></div>`;
+			            if (wbSub === 'help') {
+                output.innerHTML += `<div class="msg-box" style="border-color:#ffaa44; padding:18px 22px;">
+
+                    <div style="text-align:center; color:#ffaa44; font-weight:bold; letter-spacing:4px; font-size:1.05rem;
+                                border-bottom:1px dashed rgba(255,170,68,0.5); padding-bottom:12px; margin-bottom:16px;">
+                        wallbreaker.exe — AYUDA
+                    </div>
+
+                    <div style="color:#aab8c5; font-size:0.82rem; line-height:1.7; padding:0 4px 14px 4px;">
+                        <b style="color:#ffaa44;">wallbreaker.exe</b> es la herramienta para neutralizar firewalls.
+                        Su uso es <b style="color:#ffcc44;">secuencial</b>: primero analizás, después rompés.
+                    </div>
+
+                    <div style="color:#ffaa44; font-weight:bold; font-size:0.75rem; letter-spacing:2px;
+                                border-bottom:1px dashed rgba(255,170,68,0.35); padding-bottom:6px; margin:8px 0 10px 0;">
+                        [ SUBCOMANDOS ]
+                    </div>
+
+                    <table class="help-table" style="margin-top:0;">
+                        <tr><td>wallbreaker</td><td>Abre la aplicación (requiere estar conectado a un server con firewall)</td></tr>
+                        <tr><td>wallbreaker analyze</td><td>Ejecuta un sondeo. Captura la firma del firewall. Consume 1 análisis (máx. 2 por server).</td></tr>
+                        <tr><td>wallbreaker signature</td><td>Vuelve a mostrar la firma HEX capturada.</td></tr>
+                        <tr><td>wallbreaker table</td><td>Muestra la tabla de conversión HEX → ASCII.</td></tr>
+                        <tr><td>wallbreaker break [v]</td><td>Rompe el firewall usando la versión correcta · ej: <code>wallbreaker break 2.4</code></td></tr>
+                        <tr><td>wallbreaker status</td><td>Muestra el estado actual del firewall.</td></tr>
+                        <tr><td>wallbreaker close</td><td>Cierra la app y libera la RAM.</td></tr>
+                    </table>
+
+                    <div style="color:#ffaa44; font-weight:bold; font-size:0.75rem; letter-spacing:2px;
+                                border-bottom:1px dashed rgba(255,170,68,0.35); padding-bottom:6px; margin:20px 0 10px 0;">
+                        [ CÓMO SE USA ]
+                    </div>
+
+                    <div style="color:#aab8c5; font-size:0.82rem; line-height:1.8; padding:0 4px;">
+                        <b style="color:#ffcc44;">1.</b> Conectate al server y corré <code>probe</code>. Si tiene firewall, los puertos estarán enmascarados.<br>
+                        <b style="color:#ffcc44;">2.</b> Abrí la app con <code>wallbreaker</code>.<br>
+                        <b style="color:#ffcc44;">3.</b> Corré <code>wallbreaker analyze</code>. Vas a ver una animación y, al terminar, la firma HEX.<br>
+                        <b style="color:#ffcc44;">4.</b> Traducí la firma con <code>wallbreaker table</code> para encontrar el número de versión (ej: <b style="color:#33ff33;">V2.4</b>).<br>
+                        <b style="color:#ffcc44;">5.</b> Rompé el firewall con <code>wallbreaker break 2.4</code> (usá el número que hayas encontrado).<br>
+                        <b style="color:#ffcc44;">6.</b> Listo: el firewall queda caído y ya podés usar <code>probe</code> normalmente.
+                    </div>
+
+                    <div style="color:#ffaa44; font-weight:bold; font-size:0.75rem; letter-spacing:2px;
+                                border-bottom:1px dashed rgba(255,170,68,0.35); padding-bottom:6px; margin:20px 0 10px 0;">
+                        [ ¿QUÉ ES HEX? ]
+                    </div>
+
+                    <div style="color:#aab8c5; font-size:0.82rem; line-height:1.7; padding:0 4px 12px 4px;">
+                        Cada carácter de un texto tiene un <b style="color:#ffcc44;">número</b> interno (del <b>0</b> al <b>255</b>).
+                        Ese número se puede escribir en <b style="color:#ffcc44;">HEXADECIMAL</b> (base 16) usando
+                        <b style="color:#ffcc44;">dos dígitos</b> del <b style="color:#ffcc44;">00</b> al <b style="color:#ffcc44;">FF</b>.
+                        El prefijo <b style="color:#ffcc44;">0x</b> solo significa <i>"lo que sigue está en hexadecimal"</i>.
+                        Por ejemplo, <b style="color:#ffcc44;">0x41</b> es el número 65, y 65 es la letra <b style="color:#ffcc44;">'A'</b>.
+                    </div>
+
+                    <div style="color:#aab8c5; font-size:0.82rem; line-height:1.7; padding:0 4px;">
+                        <b style="color:#ffaa44;">¿Cómo se lee la tabla?</b><br>
+                        &nbsp;· El <b style="color:#ffcc44;">primer dígito</b> de un byte indica la <b>fila</b>.<br>
+                        &nbsp;· El <b style="color:#ffcc44;">segundo dígito</b> indica la <b>columna</b>.<br>
+                        &nbsp;· Ejemplo: <b style="color:#ffcc44;">0x56</b> → fila <b>5</b>, columna <b>6</b> → <b style="color:#ffcc44;">'V'</b>.
+                    </div>
+
+                    <div style="color:#aab8c5; font-size:0.82rem; line-height:1.8; padding:14px 4px 0 4px;
+                                border-top:1px dashed rgba(255,170,68,0.35); margin-top:14px;">
+                        <b style="color:#ffaa44;">Ejemplo real de firma:</b><br>
+                        El firewall te devuelve algo así:<br>
+                        <span style="color:#ffcc44; font-family:Consolas,monospace; letter-spacing:2px;">
+                            41 46 5F 56 32 2E 34 4B 4C
+                        </span><br>
+                        Traducido usando la tabla (<code>wallbreaker table</code>):<br>
+                        <span style="font-family:Consolas,monospace;">
+                            0x41='A' &nbsp; 0x46='F' &nbsp; 0x5F='_' &nbsp;
+                            0x56='V' &nbsp; 0x32='2' &nbsp; 0x2E='.' &nbsp;
+                            0x34='4' &nbsp; 0x4B='K' &nbsp; 0x4C='L'
+                        </span><br>
+                        Texto: <b style="color:#33ff33;">AF_V2.4KL</b> → la versión es <b style="color:#33ff33;">V2.4</b>.
+                    </div>
+
+                    <div style="text-align:center; color:#668866; font-size:0.75rem; margin-top:16px;
+                                padding-top:12px; border-top:1px dashed rgba(255,170,68,0.35);">
+                        Cada server permite un máximo de <b style="color:#ffcc44;">2 análisis</b>. Si te pasás, se dispara el rastreo.
+                    </div>
+
+                </div>`;
+                break;
+            }
+                                    if (wbSub === 'table') {
+                output.innerHTML += `<div class="msg-box" style="border-color:#33ccff; padding:14px 20px;">
+
+                    <div style="color:#33ccff; font-weight:bold; font-size:0.75rem; letter-spacing:2px;
+                                border-bottom:1px dashed rgba(51,204,255,0.35); padding-bottom:6px; margin-bottom:10px;">
+                        TABLA HEX → ASCII
+                    </div>
+
+                    <pre style="font-family:Consolas,monospace; color:#33ccff; font-size:0.82rem; line-height:1.7; margin:0; padding:0 4px;">
+       0  1  2  3  4  5  6  7  8  9  A  B  C  D  E  F
+  2    ·  !  "  #  $  %  &amp;  '  (  )  *  +  ,  -  .  /
+  3    0  1  2  3  4  5  6  7  8  9  :  ;  &lt;  =  &gt;  ?
+  4    @  A  B  C  D  E  F  G  H  I  J  K  L  M  N  O
+  5    P  Q  R  S  T  U  V  W  X  Y  Z  [  \\  ]  ^  _
+  6    \`  a  b  c  d  e  f  g  h  i  j  k  l  m  n  o
+  7    p  q  r  s  t  u  v  w  x  y  z  {  |  }  ~
+</pre>
+
+                    <div style="color:#668866; font-size:0.75rem; margin-top:10px; padding-top:8px;
+                                border-top:1px dashed rgba(51,204,255,0.35); line-height:1.6;">
+                        Primer dígito = fila · Segundo dígito = columna · Ej: <b style="color:#33ccff;">0x56</b> → 'V'
+                        <br>Para la explicación completa, usá <code style="color:#ffcc00;">wallbreaker help</code>.
+                    </div>
+
+                </div>`;
                 break;
             }
             if (wbSub === 'signature' || wbSub === 'sig') {
@@ -967,33 +1139,53 @@ function handleCommand(cmd) {
         }
 
         case 'run': {
-            if (!args[1]) { output.innerHTML += `<span class="text-error">Uso: run [exe] [puerto?]</span><br>`; break; }
-            const toolName = args[1];
-            const template = TOOL_TEMPLATES[toolName];
-            if (!template) { output.innerHTML += `<span class="text-error">'${toolName}' no es válido.</span><br>`; break; }
-            if (template.isApp) { output.innerHTML += `<span class="text-warning">'${toolName}' es una app.</span><br>`; break; }
-            let tool = gameState.tools.find(t => t.name === toolName);
-            const ownsTool = !!tool && localFS['/bin'].children.includes(toolName);
-            let portObj = null, portNum = null, forcedTest = false;
-            if (args[2]) {
-                portNum = parseInt(args[2]);
-                if (isNaN(portNum) || portNum <= 0 || portNum > 65535) { output.innerHTML += `<span class="text-error">Puerto inválido.</span><br>`; break; }
-                if (!ownsTool) {
-                    tool = { name: toolName, v: 1.0, ram: template.ram, service: template.service };
-                    portNum = null; forcedTest = true;
-                } else if (gameState.isConnected && gameState.currentServer) {
-                    const foundPort = gameState.currentServer.ports.find(p => p.port === portNum);
-                    if (!foundPort) { portNum = null; forcedTest = true; }
-                    else if (foundPort.service !== tool.service) { output.innerHTML += `<span class="text-error">Servicio incorrecto.</span><br>`; break; }
-                    else if (foundPort.state === 'open') { output.innerHTML += `<span class="text-warning">Puerto ya abierto.</span><br>`; break; }
-                    else { portObj = foundPort; }
-                } else { portNum = null; forcedTest = true; }
-            } else {
-                if (!ownsTool) { output.innerHTML += `<span class="text-error">'${toolName}' no en /bin.</span><br>`; break; }
-            }
-            if (launchTool(tool, portObj, portNum)) { /* ok */ }
+    if (!args[1]) { output.innerHTML += `<span class="text-error">Uso: run [exe] [puerto?]</span><br>`; break; }
+    const toolName = args[1];
+    const template = TOOL_TEMPLATES[toolName];
+    if (!template) { output.innerHTML += `<span class="text-error">'${toolName}' no es válido.</span><br>`; break; }
+    if (template.isApp) { output.innerHTML += `<span class="text-warning">'${toolName}' es una app.</span><br>`; break; }
+
+    let tool = gameState.tools.find(t => t.name === toolName);
+    const ownsTool = !!tool && localFS['/bin'].children.includes(toolName);
+    let portObj = null;
+    let portNum = null;
+
+    if (args[2]) {
+        portNum = parseInt(args[2]);
+        if (isNaN(portNum) || portNum <= 0 || portNum > 65535) {
+            output.innerHTML += `<span class="text-error">Puerto inválido.</span><br>`;
             break;
         }
+        if (!ownsTool) {
+            // No tiene la tool: modo test (corre a velocidad de prueba, sin objetivo)
+            tool = { name: toolName, v: 1.0, ram: template.ram, service: template.service };
+            portNum = null;
+        } else if (gameState.isConnected && gameState.currentServer) {
+            const foundPort = gameState.currentServer.ports.find(p => p.port === portNum);
+            if (!foundPort) {
+                portNum = null;
+            } else if (foundPort.service !== tool.service) {
+                output.innerHTML += `<span class="text-error">Servicio incorrecto.</span><br>`;
+                break;
+            } else if (foundPort.state === 'open') {
+                output.innerHTML += `<span class="text-warning">Puerto ya abierto.</span><br>`;
+                break;
+            } else {
+                portObj = foundPort;
+            }
+        } else {
+            portNum = null;
+        }
+    } else {
+        if (!ownsTool) {
+            output.innerHTML += `<span class="text-error">'${toolName}' no en /bin.</span><br>`;
+            break;
+        }
+    }
+
+    launchTool(tool, portObj, portNum);
+    break;
+}
 
         case 'ls': {
             const fsLs = getCurrentFS(), cwdLs = getCurrentCWD();
@@ -1101,7 +1293,7 @@ function handleCommand(cmd) {
             break;
         }
 
-        case 'unzip': {
+                case 'unzip': {
             if (!args[1]) { output.innerHTML += `<span class="text-error">Uso: unzip [archivo] [contraseña?]</span><br>`; break; }
             const zipPath = resolvePath(args[1], getCurrentCWD());
             const fs = getCurrentFS();
@@ -1122,15 +1314,21 @@ function handleCommand(cmd) {
             const extractDirPath = zipDirPath === '/' ? '/' + extractDirName : zipDirPath + '/' + extractDirName;
             const zipContents = zipFile.zipContents || [];
             const durationMs = getUnzipDuration(sizeKB, zipContents.length);
+            const sourceServerIdentity = gameState.currentServer
+                ? getServerIdentity(gameState.currentServer)
+                : (zipFile.sourceServerIdentity || null);
             const proc = {
                 id: 'unz_' + Date.now() + Math.floor(Math.random() * 1000),
                 toolName: 'unzip', isUnzip: true, status: 'hacking', progress: 0, ram: ramCost,
-                serverIP: gameState.currentIP || 'local', sourceServerIP: gameState.currentIP || 'local',
+                serverIP: gameState.currentIP || 'local',
+                sourceServerIP: gameState.currentIP || zipFile.sourceServerIP || 'local',
+                sourceServerIdentity: sourceServerIdentity,
                 isRemote: gameState.isConnected,
                 zipPath, zipName, zipPassword: pw, zipContents,
                 extractDirPath, extractDirName, extractDirParent: zipDirPath,
                 extractedCount: 0, totalFiles: zipContents.length,
                 fileName: zipName, fileSizeKB: sizeKB, durationMs,
+                isDuplicateDownload: !!zipFile.isDuplicateDownload,
                 animatedElapsed: 0, startedAt: Date.now(), resultMessage: ''
             };
             gameState.runningProcesses.push(proc);
@@ -1143,7 +1341,7 @@ function handleCommand(cmd) {
             break;
         }
 
-        case 'scp': {
+                        case 'scp': {
             if (!gameState.isConnected) { output.innerHTML += `<span class="text-error">No conectado.</span><br>`; break; }
             if (!gameState.currentServer.accessed && !gameState.isAuthenticated) { output.innerHTML += `<span class="text-error">Sin acceso.</span><br>`; break; }
             if (!args[1]) { output.innerHTML += `<span class="text-error">Uso: scp [archivo] [dest?]</span><br>`; break; }
@@ -1166,13 +1364,27 @@ function handleCommand(cmd) {
             const sizeKB = remoteFile.size || 1;
             const ramCost = getDownloadRAM(sizeKB);
             if (gameState.ram + ramCost > gameState.maxRam) { output.innerHTML += `<span class="text-error">RAM insuficiente.</span><br>`; break; }
+
+            // ==== NOMBRE FINAL ====
             const reservedNames = gameState.runningProcesses.filter(p => p.isDownload && p.destDirPath === localDirPath).map(p => p.fileName);
             let finalName;
             if (isExe) finalName = fileName;
             else finalName = getUniqueFileName(localFS, localDirPath, fileName, reservedNames);
+
+            // ==== ANTI-DUPLICADOS ====
+            const sourceInstanceId = gameState.currentIP + '::' + remoteFilePath;
+            const alreadyDownloaded =
+                !isExe &&
+                Array.isArray(gameState.downloadedFileIds) &&
+                gameState.downloadedFileIds.includes(sourceInstanceId);
+            const isDuplicate = alreadyDownloaded;
+
             const durationMs = getDownloadDuration(sizeKB);
             const serverIPAtStart = gameState.currentIP;
             const serverTierAtStart = gameState.currentServer.tier;
+            const sourceServerRef = gameState.currentServer;
+            const sourceServerIdentity = getServerIdentity(sourceServerRef);
+
             const proc = {
                 id: 'dl_' + Date.now() + Math.floor(Math.random() * 1000),
                 toolName: 'scp', isDownload: true, status: 'hacking', progress: 0, ram: ramCost,
@@ -1180,6 +1392,8 @@ function handleCommand(cmd) {
                 sourcePath: remoteFilePath, sourceFS: 'remote',
                 destDirPath: localDirPath, destFS: 'local',
                 fileName: finalName, originalFileName: fileName,
+                sourceInstanceId, isDuplicate,
+                sourceServerIdentity,
                 fileSizeKB: sizeKB, isExe, durationMs,
                 animatedElapsed: 0, startedAt: Date.now(), resultMessage: ''
             };
@@ -1188,17 +1402,20 @@ function handleCommand(cmd) {
             lastProcessSignature = '__force__';
             updateUI();
             output.innerHTML += `<span class="text-info">[↓] Descarga: ${finalName} (${sizeKB.toFixed(1)} KB · ${ramCost.toFixed(2)} GB)</span><br>`;
+            if (isDuplicate) {
+                output.innerHTML += `<span class="text-warning">  ⚠ Ya bajaste este archivo de este server. El duplicado no tendrá valor de venta.</span><br>`;
+            }
             output.scrollTop = output.scrollHeight;
             launchDownload(proc).then(() => {
-    autoAdvanceMissionsOnEvent({ type: 'download', fileName, tier: serverTierAtStart, serverIP: serverIPAtStart });
-    const sourceFile = remoteFS ? remoteFS[remoteFilePath] : null;
-    const cat = sourceFile && sourceFile.category ? sourceFile.category : null;
-    if (typeof newsOnFinancialLeak === 'function' && cat === 'financiero') {
-        newsOnFinancialLeak(fileName, serverIPAtStart);
-    } else if (typeof newsOnPersonalLeak === 'function' && cat === 'personal') {
-        newsOnPersonalLeak(fileName, serverIPAtStart);
-    }
-});
+                autoAdvanceMissionsOnEvent({ type: 'download', fileName, tier: serverTierAtStart, serverIP: serverIPAtStart });
+                const sourceFile = remoteFS ? remoteFS[remoteFilePath] : null;
+                const cat = sourceFile && sourceFile.category ? sourceFile.category : null;
+                if (typeof newsOnFinancialLeak === 'function' && cat === 'financiero') {
+                    newsOnFinancialLeak(fileName, sourceServerRef);
+                } else if (typeof newsOnPersonalLeak === 'function' && cat === 'personal') {
+                    newsOnPersonalLeak(fileName, sourceServerRef);
+                }
+            });
             break;
         }
 
@@ -1329,32 +1546,69 @@ function unlockAllToolsForProbe() {
 }
 
 function resetGame() {
+    // ── Timers y audio ────────────────────────────────────────
     if (gameState.traceInterval) clearInterval(gameState.traceInterval);
     gameState.traceInterval = null;
+    if (gameState.lastChanceTimer) clearInterval(gameState.lastChanceTimer);
+    gameState.lastChanceTimer = null;
+    if (typeof stopLastChanceEvents === 'function') stopLastChanceEvents();
+    stopScannerSound();
+    if (typeof stopDroneWB === 'function') stopDroneWB();
+    if (typeof clearPendingNews === 'function') clearPendingNews();
+
+    // ── Guardado ──────────────────────────────────────────────
+    clearSave();
+    if (typeof clearPersistedLastChance === 'function') clearPersistedLastChance();
+    if (typeof clearPreTraceSnapshot === 'function') clearPreTraceSnapshot();
+    if (typeof clearTraceSource === 'function') clearTraceSource();
+
+    // ── Flags de body / overlays visuales ─────────────────────
+    document.body.classList.remove(
+        'quick-trace-active', 'trace-active', 'trace-critical',
+        'lastchance-mode', 'shutdown-glitch',
+        'ui-visible', 'ui-fade-in'
+    );
+
+    // ── Conexión / rastreo / procesos ─────────────────────────
+    gameState.currentIP = null;
+    gameState.currentServer = null;
+    gameState.isConnected = false;
+    gameState.isAuthenticated = false;
+    gameState.isDeleting = false;
+    gameState.isDownloading = false;
+    gameState.isGameOver = false;
+    gameState.quickTraceActive = false;
+    gameState.traceSpeedMult = 1;
+    gameState.traceTime = 0;
     gameState.scanning = false;
     gameState.runningProcesses = [];
-    stopScannerSound();
-    clearSave();
-    document.body.classList.remove('quick-trace-active');
-    document.body.classList.remove('trace-active');
-    document.body.classList.remove('trace-critical');
-    gameState.currentIP = null; gameState.currentServer = null;
-    gameState.isConnected = false; gameState.isAuthenticated = false;
-    gameState.probeUnlocked = false;
-    gameState.netmapOpen = false; gameState.isDeleting = false; gameState.isGameOver = false;
-    gameState.isDownloading = false; gameState.quickTraceActive = false;
+    gameState.hackedServers = [];
+    gameState.lastKnownTier = 0;
+    gameState.lastChanceTimeLeft = 0;
+    gameState.lastChanceServer = null;
+    gameState.lastChanceTargetPath = null;
+
+    // ── Netmap ────────────────────────────────────────────────
+    gameState.netmapOpen = false;
+    gameState.netmapCamX = 0;
+    gameState.netmapCamY = 0;
+    gameState.netmapNodes = [];
+    gameState.netmapServerNodes = [];
+    gameState.netmapBounds = null;
+    gameState.netmapDragging = false;
+    gameState.netmapDragMoved = false;
+
+    // ── Dinero / mercado ──────────────────────────────────────
     gameState.money = 0;
-    gameState.marketAccount = null; gameState.marketSession = false; gameState.inMarket = false;
-    gameState.connectOverlayOpen = false; gameState.pendingReset = false;
-    gameState.ram = 0; gameState.maxRam = 1.2; gameState.ramUpgradeLevel = 0; gameState.traceTime = 0;
-    gameState.netmapCamX = 0; gameState.netmapCamY = 0;
-    gameState.hackedServers = []; gameState.lastKnownTier = 0;
-    gameState.wallbreakerObtained = false; gameState.wallbreakerApp = null;
-    gameState.missionAccount = null; gameState.gomailAccount = null; gameState.gomailLinked = false;
-    gameState.hacknetSession = false; gameState.gomailSession = false;
-    gameState.inHacknet = false; gameState.inGomail = false;
-    gameState.missionsAvailable = []; gameState.missionsActive = []; gameState.missionsCompleted = [];
-    gameState.lastMissionSpawn = 0; gameState.missionCounter = 0; gameState.gomailInbox = [];
+    gameState.marketAccount = null;
+    gameState.marketSession = false;
+    gameState.inMarket = false;
+    gameState.pendingReset = false;
+
+    // ── Hardware / RAM / tools ────────────────────────────────
+    gameState.ram = 0;
+    gameState.maxRam = 1.2;
+    gameState.ramUpgradeLevel = 0;
     gameState.hardware = {
         cpu:     { level: 0, mult: 1.0,  label: 'Base Dual-Core 2.4GHz' },
         antenna: { level: 0, range: 1.0, label: 'Antena integrada' }
@@ -1364,28 +1618,103 @@ function resetGame() {
         { name: 'sql_crack.exe', v: 1.0, ram: 0.9, service: 'SQL' },
         { name: 'http_crack.exe', v: 1.0, ram: 0.8, service: 'HTTP' }
     ];
+    gameState.wallbreakerObtained = false;
+    gameState.wallbreakerApp = null;
+
+    // ── Misiones / cuentas ────────────────────────────────────
+    gameState.missionAccount = null;
+    gameState.gomailAccount = null;
+    gameState.gomailLinked = false;
+    gameState.hacknetSession = false;
+    gameState.gomailSession = false;
+    gameState.inHacknet = false;
+    gameState.inGomail = false;
+    gameState.inNews = false;
+    gameState.newsOpen = false;
+    gameState.missionsAvailable = [];
+    gameState.missionsActive = [];
+    gameState.missionsCompleted = [];
+    gameState.lastMissionSpawn = 0;
+    gameState.missionCounter = 0;
+    gameState.gomailInbox = [];
+
+    // ── News log ──────────────────────────────────────────────
+    gameState.newsLog = [];
+    gameState.newsCounter = 0;
+    gameState.newsTab = 'latest';
+
+    // ── Anti-duplicados ───────────────────────────────────────
+    gameState.downloadedFileIds = [];
+    gameState.usedFlavorIds = [];
+
+    // ── Tutorial ──────────────────────────────────────────────
+    gameState.tutorialOpen = false;
+
+    // ── Progresión / debug ────────────────────────────────────
+    gameState.probeUnlocked = false;
+    gameState.gamePhase = 'normal';
+
+    // ── FS / CWD / red ────────────────────────────────────────
     localFS = buildInitialLocalFS();
     remoteFS = {};
     localCWD = '/home/user';
     remoteCWD = '/home/user';
     generateNetwork();
-    commandHistory = []; historyIndex = -1;
-    currentProcessPage = 0; lastProcessSignature = '__force__';
+
+    // ── Historial / paginación ────────────────────────────────
+    commandHistory = [];
+    historyIndex = -1;
+    suggestions = [];
+    suggestionIndex = -1;
+    isSuggestionOpen = false;
+    currentProcessPage = 0;
+    lastProcessSignature = '__force__';
+
+    // ── Trace ─────────────────────────────────────────────────
     stopTrace();
+
+    // ── UI ────────────────────────────────────────────────────
     output.innerHTML = '';
+    if (typeof suggestionBox !== 'undefined' && suggestionBox) suggestionBox.style.display = 'none';
     updateUI();
     input.disabled = true;
+
+    // ── Identidad (a reescribir en el setup) ──────────────────
     gameState.setupComplete = false;
-    gameState.localUser = 'user'; gameState.localPass = '1234';
-        setTimeout(() => {
-    if (marketFormOverlay) marketFormOverlay.style.display = 'none';
-    ['connect-overlay', 'hacknet-form-overlay', 'gomail-form-overlay', 'gomail-web-overlay', 'wallbreaker-section'].forEach(id => {
+    gameState.localUser = 'user';
+    gameState.localPass = '1234';
+
+    // ── Cerrar TODOS los overlays ─────────────────────────────
+    const overlaysToClose = [
+        'market-form-overlay',
+        'market-web-overlay',
+        'hacknet-form-overlay',
+        'gomail-form-overlay',
+        'gomail-web-overlay',
+        'news-web-overlay',
+        'connect-overlay',
+        'tutorial-overlay',
+        'wallbreaker-section',
+        'lastchance-bar',
+        'white-terminal-overlay',
+        'migration-overlay',
+        'update-toast',
+        'devtools-alarm-overlay'
+    ];
+    overlaysToClose.forEach(id => {
         const el = document.getElementById(id);
         if (el) el.style.display = 'none';
     });
-    gameState.tutorialOpen = false;
-    document.body.classList.remove('ui-visible', 'ui-fade-in');
-    document.body.classList.add('booting', 'ui-booting');
-    showPowerAndBoot(() => startSetup());
-}, 400);
+    // Limpiar cualquier shutdown-overlay residual
+    const shutdownOv = document.getElementById('shutdown-overlay');
+    if (shutdownOv) {
+        shutdownOv.style.display = 'none';
+        shutdownOv.innerHTML = '';
+    }
+
+    // ── Volver al boot ────────────────────────────────────────
+    setTimeout(() => {
+        document.body.classList.add('booting', 'ui-booting');
+        showPowerAndBoot(() => startSetup());
+    }, 400);
 }

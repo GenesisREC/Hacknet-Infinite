@@ -58,15 +58,28 @@ function spawnLastChanceDecoy() {
     if (gameState.gamePhase !== 'last-chance') return;
     if (!remoteFS || !remoteFS['/root']) return;
 
-    // Candidatos: /root y todas sus subcarpetas
+    // Candidatos: /root y todas sus subcarpetas VÁLIDAS
     const candidateDirs = ['/root'];
     Object.keys(remoteFS).forEach(path => {
-        if (path.startsWith('/root/') && remoteFS[path].type === 'dir') {
+        const node = remoteFS[path];
+        if (!node) return;
+        if (path.startsWith('/root/') && node.type === 'dir' && Array.isArray(node.children)) {
             candidateDirs.push(path);
         }
     });
 
-    const dirPath = candidateDirs[Math.floor(Math.random() * candidateDirs.length)];
+    if (candidateDirs.length === 0) return;
+
+    // Filtramos los que ya no existen o no son dirs
+    const validDirs = candidateDirs.filter(p => {
+        const n = remoteFS[p];
+        return n && n.type === 'dir' && Array.isArray(n.children);
+    });
+    if (validDirs.length === 0) return;
+
+    const dirPath = validDirs[Math.floor(Math.random() * validDirs.length)];
+    const dirNode = remoteFS[dirPath];
+    if (!dirNode || !Array.isArray(dirNode.children)) return;
 
     let name, guard = 0;
     do {
@@ -97,7 +110,7 @@ function spawnLastChanceDecoy() {
     ].join('\n');
 
     remoteFS[fullPath] = makeFile(content, 4 + Math.floor(Math.random() * 12), false, 0, 'financiero');
-    remoteFS[dirPath].children.push(name);
+    dirNode.children.push(name);
 
     output.innerHTML += `<div class="msg-box" style="border-color:#ff8833; background:rgba(60,30,0,0.4);">` +
         `<span class="text-fire" style="font-weight:bold;">[⚠] Nuevo registro entrante: ${fullPath}</span>` +

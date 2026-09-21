@@ -6,17 +6,37 @@
 // UPDATES — changelog manual
 // ============================================================
 const NEWS_UPDATES = [
+        {
+        version: 'v1.7.0',
+        date: '2026-09-21',
+        title: 'Archivos con sabor, identidades persistentes y noticias agrupadas',
+        body: [
+            { text: 'Nuevo pool de 150 archivos únicos sin valor comercial: notas, chats, diarios, sátiras, referencias a juegos.', tag: 'new' },
+            { text: 'Los archivos de sabor no se repiten nunca en la misma partida: cada servidor recibe un set distinto.', tag: 'new' },
+            { text: 'Cada servidor tiene una identidad fija (persona o empresa) que se mantiene durante toda la partida.', tag: 'new' },
+            { text: 'Las noticias ahora referencian al dueño del servidor en lugar de la IP.', tag: 'new' },
+            { text: 'Las noticias de un mismo servidor se agrupan en una sola entrada en lugar de aparecer por separado.', tag: 'new' },
+            { text: 'Las noticias tardan entre 5 y 15 segundos en publicarse, simulando el tiempo de reacción de la prensa.', tag: 'new' },
+            { text: 'Sistema anti-duplicados: los archivos bajados dos veces del mismo server pierden su valor de venta.', tag: 'bal' },
+            { text: 'Los ZIP duplicados descomprimen sus archivos internos sin valor de venta.', tag: 'bal' },
+            { text: 'El comando help está reorganizado por secciones y solo muestra los comandos disponibles para el jugador.', tag: 'fix' },
+            { text: 'wallbreaker help ahora es un manual completo con ejemplo de uso paso a paso.', tag: 'new' },
+            { text: 'wallbreaker table quedó como tabla HEX → ASCII compacta.', tag: 'new' },
+            { text: 'La tabla HEX ahora incluye una explicación de cómo se lee, para quienes no conocen el sistema hexadecimal.', tag: 'fix' },
+            { text: 'Volumen general del juego elevado para mejor feedback auditivo.', tag: 'bal' }
+        ]
+    },
     {
-    version: 'v1.6.0',
-    date: '2026-09-20',
-    title: 'Borrado con animación + migración de guardados',
-    body: [
-        { text: 'El comando rm ahora muestra una animación por cada archivo eliminado, con su nombre y tamaño.', tag: 'new' },
-        { text: 'rm * borra secuencialmente: un proceso visible por archivo, no todos de golpe.', tag: 'new' },
-        { text: 'Sistema de migración de guardados para versiones antiguas: preserva cuentas, herramientas, créditos y pines.', tag: 'new' },
-        { text: 'News.com ahora aparece como nodo fijo en el NetMap.', tag: 'new' }
-    ]
-},
+    	version: 'v1.6.0',
+    	date: '2026-09-20',
+    	title: 'Borrado con animación + migración de guardados',
+    	body: [
+        	{ text: 'El comando rm ahora muestra una animación por cada archivo eliminado, con su nombre y tamaño.', tag: 'new' },
+        	{ text: 'rm * borra secuencialmente: un proceso visible por archivo, no todos de golpe.', tag: 'new' },
+        	{ text: 'Sistema de migración de guardados para versiones antiguas: preserva cuentas, herramientas, créditos y pines.', tag: 'new' },
+        	{ text: 'News.com ahora aparece como nodo fijo en el NetMap.', tag: 'new' }
+    	]
+    },
     {
         version: 'v1.5.0',
         date: '2026-09-20',
@@ -204,7 +224,7 @@ function newsFill(str, vars) {
 // ============================================================
 // ALTA DE NOTICIAS
 // ============================================================
-function newsAdd(category, title, text) {
+function newsAdd(category, title, text, ip) {
     if (!gameState.newsLog) gameState.newsLog = [];
     gameState.newsCounter = (gameState.newsCounter || 0) + 1;
     const entry = {
@@ -212,72 +232,197 @@ function newsAdd(category, title, text) {
         ts: Date.now(),
         category,
         title,
-        text
+        text,
+        ip: ip || null   // ← opcional, para agrupar/filtrar después
     };
     gameState.newsLog.unshift(entry);
     if (gameState.newsLog.length > 60) gameState.newsLog.pop();
     return entry;
 }
+// ============================================================
+// IDENTIDAD DE SERVIDOR
+// ============================================================
+const PERSON_PROFILES  = ['hacker', 'office', 'lowvalue'];
+const COMPANY_PROFILES = ['database', 'web', 'mail', 'backup'];
+
+function generateServerIdentity(profile) {
+    let isPerson;
+    if (PERSON_PROFILES.includes(profile)) isPerson = true;
+    else if (COMPANY_PROFILES.includes(profile)) isPerson = false;
+    else isPerson = Math.random() < 0.5;
+
+    if (isPerson) {
+        const p = dGenerarNombreCompleto();
+        return { type: 'person', name: p.nombre };
+    }
+    return { type: 'company', name: dGenerarEmpresa() };
+}
+
+function getServerIdentity(server) {
+    if (!server) return { type: 'company', name: 'Servidor desconocido' };
+    if (!server.identity) {
+        server.identity = generateServerIdentity(server.profile || 'mixed');
+    }
+    return server.identity;
+}
 
 // ============================================================
-// HOOKS DE ACTIVIDAD
+// COLA DE NOTICIAS — delay + agrupación por IP
+// ============================================================
+const NEWS_DELAY_MIN_MS = 5000;
+const NEWS_DELAY_MAX_MS = 15000;
+
+const pendingNewsByIP = {};
+
+function newsEnqueueByIP(ip, identity, event) {
+    if (!ip) return;
+    if (!pendingNewsByIP[ip]) {
+        pendingNewsByIP[ip] = { events: [], timer: null, ip, identity };
+    }
+    if (!pendingNewsByIP[ip].identity && identity) {
+        pendingNewsByIP[ip].identity = identity;
+    }
+    pendingNewsByIP[ip].events.push({ ...event, ts: Date.now() });
+
+    if (pendingNewsByIP[ip].timer) clearTimeout(pendingNewsByIP[ip].timer);
+    const delay = NEWS_DELAY_MIN_MS + Math.random() * (NEWS_DELAY_MAX_MS - NEWS_DELAY_MIN_MS);
+    pendingNewsByIP[ip].timer = setTimeout(() => flushNewsForIP(ip), delay);
+}
+
+function newsEnqueue(server, event) {
+    if (!server || !server.ip) return;
+    if (server.isProbeServer || server.isLastChanceServer) return;
+    newsEnqueueByIP(server.ip, getServerIdentity(server), event);
+}
+
+function flushNewsForIP(ip) {
+    const pending = pendingNewsByIP[ip];
+    if (!pending || pending.events.length === 0) {
+        delete pendingNewsByIP[ip];
+        return;
+    }
+
+    const identity = pending.identity || { type: 'company', name: 'Servidor desconocido' };
+    const events = pending.events;
+
+    const hasLeakFin  = events.some(e => e.type === 'leak_fin');
+    const hasLeakPers = events.some(e => e.type === 'leak_pers');
+    const hasMarket   = events.some(e => e.type === 'market_sale');
+    const hasLogWiped = events.some(e => e.type === 'log_wiped');
+    const hasHack     = events.some(e => e.type === 'hack');
+
+    let category, title;
+
+    if (hasLeakFin) {
+        category = 'leak';
+        title = identity.type === 'person'
+            ? `Filtración de datos financieros de ${identity.name}`
+            : `Filtración de datos financieros en ${identity.name}`;
+    } else if (hasLeakPers) {
+        category = 'leak';
+        title = identity.type === 'person'
+            ? `Datos personales de ${identity.name} expuestos`
+            : `Filtración de información privada en ${identity.name}`;
+    } else if (hasMarket) {
+        category = 'market';
+        title = identity.type === 'person'
+            ? `Datos robados a ${identity.name} aparecen a la venta`
+            : `Lote de ${identity.name} aparece en el mercado negro`;
+    } else if (hasLogWiped) {
+        category = 'ghost';
+        title = identity.type === 'person'
+            ? `Ataque fantasma contra ${identity.name}: sin rastros`
+            : `Ataque limpio a ${identity.name}: evidencias borradas`;
+    } else if (hasHack) {
+        category = 'cyber';
+        title = identity.type === 'person'
+            ? `El equipo de ${identity.name} sufrió un ataque`
+            : `${identity.name} comprometida por un atacante`;
+    } else {
+        category = 'info';
+        title = `Incidente reportado en ${identity.name}`;
+    }
+
+    const body = buildGroupedBody(events, identity);
+    newsAdd(category, title, body, ip);
+    delete pendingNewsByIP[ip];
+}
+
+function buildGroupedBody(events, identity) {
+    const lines = [];
+    const person = identity.type === 'person';
+
+    if (events.some(e => e.type === 'hack')) {
+        lines.push(person
+            ? `El servidor personal de ${identity.name} fue accedido sin autorización.`
+            : `El servidor de ${identity.name} fue comprometido por un atacante desconocido.`);
+    }
+
+    const finEvents = events.filter(e => e.type === 'leak_fin');
+    if (finEvents.length > 0) {
+        const files = finEvents.map(e => e.data.fileName).filter(Boolean);
+        lines.push(files.length > 0
+            ? `Se sustrajeron los archivos ${files.join(', ')} con datos financieros.`
+            : `Se sustrajo información financiera sensible.`);
+        lines.push(`Analistas advierten sobre el riesgo de fraude.`);
+    }
+
+    const persEvents = events.filter(e => e.type === 'leak_pers');
+    if (persEvents.length > 0) {
+        const files = persEvents.map(e => e.data.fileName).filter(Boolean);
+        lines.push(files.length > 0
+            ? `Los archivos ${files.join(', ')} contienen datos personales de contacto.`
+            : `Se filtró información personal de contacto.`);
+        lines.push(`Se recomienda extremar precauciones ante posibles estafas.`);
+    }
+
+    const marketEvents = events.filter(e => e.type === 'market_sale');
+    if (marketEvents.length > 0) {
+        const total = marketEvents.reduce((sum, e) => sum + (e.data.amount || 0), 0);
+        lines.push(total > 0
+            ? `El lote fue vendido por ${total.toLocaleString()} créditos en el mercado negro.`
+            : `El lote ya fue ofrecido en foros clandestinos.`);
+    }
+
+    if (events.some(e => e.type === 'log_wiped')) {
+        lines.push(`El atacante logró borrar los registros de conexión. La investigación no tiene pistas.`);
+    }
+
+    if (lines.length === 0) {
+        lines.push(`Se reportaron incidentes en los sistemas de ${identity.name}.`);
+    }
+
+    return lines.join(' ');
+}
+
+// ============================================================
+// HOOKS DE ACTIVIDAD (ahora usan newsEnqueue)
 // ============================================================
 function newsOnServerHacked(server) {
     if (!server) return;
-    const ip = server.ip || '?.?.?.?';
-    const profile = server.profile || 'mixed';
-    const pool = NEWS_TITULARES_HACK[profile] || NEWS_TITULARES_HACK.mixed;
-    const title = newsFill(newsPick(pool), { IP: ip });
-    const text = newsPick(NEWS_CUERPOS_HACK);
-    newsAdd('cyber', title, text);
-
-    if (server.hasTrace) {
-        newsAdd('info',
-            `Rastreo activo en ${ip} tras el incidente`,
-            `El servidor comprometido mantenía un sistema de rastreo activo. Se desconoce si el atacante logró evadirlo.`);
-    }
+    newsEnqueue(server, { type: 'hack' });
 }
 
-function newsOnFinancialLeak(fileName, serverIP) {
-    if (!fileName) return;
-    const ip = serverIP || 'IP desconocida';
-    const title = newsFill(newsPick(NEWS_TITULARES_LEAK_FIN), { IP: ip });
-    const text = newsPick(NEWS_CUERPOS_LEAK_FIN) + ` (Archivo: ${fileName})`;
-    newsAdd('leak', title, text);
+function newsOnFinancialLeak(fileName, server) {
+    if (!fileName || !server) return;
+    newsEnqueue(server, { type: 'leak_fin', data: { fileName } });
 }
 
-function newsOnPersonalLeak(fileName, serverIP) {
-    if (!fileName) return;
-    const ip = serverIP || 'IP desconocida';
-    const title = newsFill(newsPick(NEWS_TITULARES_LEAK_PERS), { IP: ip });
-    const text = newsPick(NEWS_CUERPOS_LEAK_PERS) + ` (Archivo: ${fileName})`;
-    newsAdd('leak', title, text);
+function newsOnPersonalLeak(fileName, server) {
+    if (!fileName || !server) return;
+    newsEnqueue(server, { type: 'leak_pers', data: { fileName } });
 }
 
-function newsOnMarketSale(fileName, value) {
-    const titulares = NEWS_TITULARES_MARKET;
-    const titulo = newsPick(titulares);
-    const v = Number(value) || 0;
-    const textos = [
-        `El lote fue vendido por ${v.toLocaleString()} créditos. El comprador permanece anónimo.`,
-        `Analistas estiman que la operación se concretó en minutos. La demanda de datos filtrados sigue en aumento.`,
-        `Fuentes del mercado negro confirman la transacción. El archivo "${fileName}" ya no está disponible.`,
-        `El precio alcanzado sorprendió a los propios vendedores. Algunos especulan con una nueva ola de filtraciones.`
-    ];
-    newsAdd('market', titulo, newsPick(textos));
+function newsOnMarketSale(fileName, value, fileRef) {
+    const ip = fileRef && fileRef.sourceServerIP;
+    const identity = fileRef && fileRef.sourceServerIdentity;
+    if (!ip || !identity) return;
+    newsEnqueueByIP(ip, identity, { type: 'market_sale', data: { fileName, amount: value } });
 }
 
-function newsOnLogWiped(serverIP) {
-    const ip = serverIP || 'IP desconocida';
-    const title = newsFill(newsPick(NEWS_TITULARES_GHOST), { IP: ip });
-    const text = newsPick(NEWS_CUERPOS_GHOST);
-    newsAdd('ghost', title, text);
-}
-
-function newsOnTraceComplete(serverIP) {
-    const ip = serverIP || 'IP desconocida';
-    const title = newsFill(newsPick(NEWS_TITULARES_TRACE), { IP: ip });
-    newsAdd('info', title, 'Las autoridades fueron notificadas. El atacante será localizado en las próximas horas.');
+function newsOnLogWiped(server) {
+    if (!server) return;
+    newsEnqueue(server, { type: 'log_wiped' });
 }
 
 // ============================================================
@@ -328,18 +473,6 @@ function closeNewsWeb() {
             input.focus();
         }
     }
-}
-
-function switchNewsTab(tab) {
-    gameState.newsTab = tab;
-    updateNewsTabs();
-    const urlEl = document.getElementById('news-web-url');
-    if (urlEl) {
-        urlEl.textContent = tab === 'latest'
-            ? 'https://news.com/latest'
-            : 'https://news.com/updates';
-    }
-    renderNewsWeb();
 }
 
 function updateNewsTabs() {
@@ -512,6 +645,17 @@ function goToUpdatesFromToast() {
     }
 }
 
+// Limpia los timers pendientes de agrupación de noticias
+function clearPendingNews() {
+    if (typeof pendingNewsByIP !== 'object') return;
+    Object.keys(pendingNewsByIP).forEach(ip => {
+        const p = pendingNewsByIP[ip];
+        if (p && p.timer) clearTimeout(p.timer);
+        delete pendingNewsByIP[ip];
+    });
+}
+window.clearPendingNews = clearPendingNews;
+
 // ==== Modificar switchNewsTab existente ====
 // Reemplazá la función actual por esta versión:
 function switchNewsTab(tab) {
@@ -536,7 +680,8 @@ window.newsOnFinancialLeak   = newsOnFinancialLeak;
 window.newsOnPersonalLeak    = newsOnPersonalLeak;
 window.newsOnMarketSale      = newsOnMarketSale;
 window.newsOnLogWiped        = newsOnLogWiped;
-window.newsOnTraceComplete   = newsOnTraceComplete;
 window.openNewsWeb           = openNewsWeb;
 window.closeNewsWeb          = closeNewsWeb;
 window.switchNewsTab         = switchNewsTab;
+window.generateServerIdentity = generateServerIdentity;
+window.getServerIdentity      = getServerIdentity;

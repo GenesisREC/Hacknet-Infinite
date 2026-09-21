@@ -449,29 +449,54 @@ async function launchDownload(proc) {
         const localDestPath = destDir === '/' ? '/' + cur.fileName : destDir + '/' + cur.fileName;
 
         if (!localFS[destDir].children.includes(cur.fileName)) {
-            localFS[destDir].children.push(cur.fileName);
-        }
-        localFS[localDestPath] = { ...sourceFile };
+    localFS[destDir].children.push(cur.fileName);
+}
+localFS[localDestPath] = { ...sourceFile };
+if (cur.sourceServerIP) localFS[localDestPath].sourceServerIP = cur.sourceServerIP;
+        if (cur.sourceServerIdentity) localFS[localDestPath].sourceServerIdentity = cur.sourceServerIdentity;
 
-        if (cur.isExe) {
-            const newVersion = sourceFile.version || 1.0;
-            const existingTool = gameState.tools.find(t => t.name === cur.fileName);
-            const template = TOOL_TEMPLATES[cur.fileName];
-            if (template) {
-                if (existingTool) {
-                    existingTool.v = newVersion;
-                    existingTool.ram = template.ram;
-                    existingTool.service = template.service;
-                } else {
-                    gameState.tools.push({ name: cur.fileName, v: newVersion, ram: template.ram, service: template.service });
-                }
-            }
+// ==== ANTI-DUPLICADOS ====
+// Si es duplicado, se guarda con value 0 y una marca para que
+// (si es zip) los archivos extraídos también salgan sin valor.
+if (cur.isDuplicate) {
+    localFS[localDestPath].value = 0;
+    localFS[localDestPath].isDuplicateDownload = true;
+}
+
+if (cur.isExe) {
+    const newVersion = sourceFile.version || 1.0;
+    const existingTool = gameState.tools.find(t => t.name === cur.fileName);
+    const template = TOOL_TEMPLATES[cur.fileName];
+    if (template) {
+        if (existingTool) {
+            existingTool.v = newVersion;
+            existingTool.ram = template.ram;
+            existingTool.service = template.service;
         } else {
-            const sellValue = getFileValue(cur.fileName, sourceFile);
-            let extra = '';
-            if (sellValue > 0) extra = ` <span class="text-gold">(vendible: ${sellValue} CR)</span>`;
-            output.innerHTML += `<span class="text-success">[✓] ${cur.fileName} → ${destDir}</span>${extra}<br>`;
+            gameState.tools.push({ name: cur.fileName, v: newVersion, ram: template.ram, service: template.service });
         }
+    }
+} else {
+    // Registrar el ID como ya descargado (aunque sea duplicado,
+    // así el set queda consistente y no se re-chequea dos veces).
+    if (cur.sourceInstanceId) {
+        if (!Array.isArray(gameState.downloadedFileIds)) gameState.downloadedFileIds = [];
+        if (!gameState.downloadedFileIds.includes(cur.sourceInstanceId)) {
+            gameState.downloadedFileIds.push(cur.sourceInstanceId);
+        }
+    }
+
+    // Leer del FS local ya guardado (puede tener value = 0 si es duplicado)
+    const storedFile = localFS[localDestPath];
+    const sellValue = getFileValue(cur.fileName, storedFile);
+    let extra = '';
+    if (sellValue > 0) {
+        extra = ` <span class="text-gold">(vendible: ${sellValue} CR)</span>`;
+    } else if (cur.isDuplicate) {
+        extra = ` <span class="text-warning">(duplicado — sin valor de venta)</span>`;
+    }
+    output.innerHTML += `<span class="text-success">[✓] ${cur.fileName} → ${destDir}</span>${extra}<br>`;
+}
 
         cur.status = 'active';
         cur.resultMessage = 'Completado';
@@ -546,9 +571,13 @@ async function launchUnzip(proc) {
                     while (extractedSoFar < targetExtracted && extractedSoFar < cur.zipContents.length) {
                         const inner = cur.zipContents[extractedSoFar];
                         const innerPath = cur.extractDirPath + '/' + inner.name;
-                        const val = computeFileValue(inner.category, inner.size,
-                            gameState.currentServer && cur.isRemote ? gameState.currentServer.tier : 0);
+                        const val = cur.isDuplicateDownload
+                            ? 0
+                            : computeFileValue(inner.category, inner.size,
+                                gameState.currentServer && cur.isRemote ? gameState.currentServer.tier : 0);
                         fs[innerPath] = makeFile(inner.content, inner.size, false, val, inner.category);
+                        if (cur.sourceServerIP) fs[innerPath].sourceServerIP = cur.sourceServerIP;
+                        if (cur.sourceServerIdentity) fs[innerPath].sourceServerIdentity = cur.sourceServerIdentity;
                         if (!fs[cur.extractDirPath].children.includes(inner.name)) {
                             fs[cur.extractDirPath].children.push(inner.name);
                         }
@@ -585,9 +614,13 @@ async function launchUnzip(proc) {
         while (extractedSoFar < cur.zipContents.length) {
             const inner = cur.zipContents[extractedSoFar];
             const innerPath = cur.extractDirPath + '/' + inner.name;
-            const val = computeFileValue(inner.category, inner.size,
-                gameState.currentServer && cur.isRemote ? gameState.currentServer.tier : 0);
+            const val = cur.isDuplicateDownload
+                ? 0
+                : computeFileValue(inner.category, inner.size,
+                    gameState.currentServer && cur.isRemote ? gameState.currentServer.tier : 0);
             fs[innerPath] = makeFile(inner.content, inner.size, false, val, inner.category);
+            if (cur.sourceServerIP) fs[innerPath].sourceServerIP = cur.sourceServerIP;
+            if (cur.sourceServerIdentity) fs[innerPath].sourceServerIdentity = cur.sourceServerIdentity;
             if (!fs[cur.extractDirPath].children.includes(inner.name)) {
                 fs[cur.extractDirPath].children.push(inner.name);
             }

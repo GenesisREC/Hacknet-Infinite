@@ -3308,9 +3308,9 @@ function updateAnimSound(proc, toolName, progress, now) {
             case 'scp':
                 if (proc.isDownload) soundDownloadEngine(proc, progress, now);
                 break;
-case 'rm':
-    if (proc.isRm) soundDownloadEngine(proc, progress, now);
-    break;case 'rm':
+            case 'rm':
+                if (proc.isRm) soundDownloadEngine(proc, progress, now);
+                break;
             case 'unzip':
                 if (proc.isUnzip) soundUnzipEngine(proc, progress, now);
                 break;
