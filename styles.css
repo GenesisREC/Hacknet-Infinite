@@ -4078,3 +4078,322 @@ overscroll-behavior: none;
     .reviews-input,
     .reviews-textarea { font-size: 16px; }  /* evita auto-zoom iOS */
 }
+/* ============================================================
+   EXPLORER — Navegador visual de archivos
+   ============================================================ */
+
+/* Panel principal del explorer — ocupa ~62% del alto */
+#explorer-panel {
+    display: none;
+    flex-direction: column;
+    flex: 1.6 1 0;
+    min-height: 0;
+    background: #050505;
+    border: 1px solid #0f0;
+    border-radius: 3px 3px 0 0;
+    margin-bottom: 0;
+    overflow: hidden;
+    opacity: 0;
+    transition: opacity 0.35s ease-out;
+}
+#explorer-panel.explorer-open { opacity: 1; }
+
+/* Header de la terminal — solo visible cuando el explorer está abierto */
+#terminal-header {
+    display: none;
+    align-items: center;
+    padding: 5px 12px;
+    background: rgba(0, 40, 0, 0.7);
+    border: 1px solid #0f0;
+    border-bottom: 1px dashed rgba(0, 255, 0, 0.35);
+    border-radius: 0;
+    color: #33ff33;
+    font-family: 'Consolas', monospace;
+    font-size: 0.75rem;
+    font-weight: bold;
+    letter-spacing: 3px;
+    text-shadow: 0 0 6px rgba(51, 255, 51, 0.6);
+    flex-shrink: 0;
+    margin-top: 6px;
+}
+
+/* Cuando explorer está activo: terminal más chica + header visible */
+body.explorer-active .center-panel {
+    display: flex;
+    flex-direction: column;
+    padding: 10px 12px;
+    gap: 0;
+}
+body.explorer-active #terminal-header {
+    display: flex;
+}
+body.explorer-active #terminal-output {
+    flex: 1 1 0;
+    min-height: 0;
+    margin-bottom: 8px;
+    border: 1px solid rgba(0, 255, 0, 0.2);
+    border-top: none;
+    border-radius: 0 0 3px 3px;
+    padding: 8px 10px 4px 10px;
+    background: #000;
+}
+body.explorer-active .input-line {
+    border-top: none;
+    padding: 6px 10px 6px 10px;
+    border: 1px solid rgba(0, 255, 0, 0.2);
+    border-top: 1px dashed rgba(0, 255, 0, 0.25);
+    border-radius: 0;
+    background: #000;
+    margin-top: 0;
+}
+
+/* Body del explorer: header arriba, lista scrolleable abajo */
+.explorer-body {
+    flex: 1;
+    min-height: 0;
+    position: relative;
+    overflow: hidden;
+    padding: 8px 10px;
+    background: #000;
+    display: flex;
+    flex-direction: column;
+}
+.explorer-list {
+    flex: 1;
+    overflow-y: auto;
+    min-height: 0;
+}
+
+.explorer-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 6px 10px;
+    background: rgba(0, 40, 0, 0.7);
+    border-bottom: 1px solid rgba(0, 255, 0, 0.4);
+    flex-shrink: 0;
+}
+.explorer-title {
+    color: #33ff33;
+    font-size: 0.78rem;
+    font-weight: bold;
+    letter-spacing: 2px;
+    flex-shrink: 0;
+}
+.explorer-path {
+    flex: 1;
+    color: #a0ffa0;
+    font-family: 'Consolas', monospace;
+    font-size: 0.78rem;
+    letter-spacing: 0.5px;
+    background: #000;
+    border: 1px solid rgba(0, 255, 0, 0.3);
+    padding: 3px 10px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.explorer-close {
+    background: transparent;
+    border: 1px solid #33ff33;
+    color: #33ff33;
+    font-family: inherit;
+    font-size: 0.72rem;
+    font-weight: bold;
+    padding: 3px 9px;
+    cursor: pointer;
+    transition: all 0.15s;
+    flex-shrink: 0;
+}
+.explorer-close:hover { background: #33ff33; color: #000; }
+
+/* ---------- Loading ---------- */
+.explorer-loading {
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 14px;
+    padding: 40px 20px;
+    color: #33ff33;
+    flex: 1;
+}
+.explorer-spinner {
+    width: 42px;
+    height: 42px;
+    border: 3px solid rgba(0, 255, 0, 0.15);
+    border-top-color: #33ff33;
+    border-radius: 50%;
+    animation: explorerSpin 0.8s linear infinite;
+    box-shadow: 0 0 18px rgba(51, 255, 51, 0.5);
+}
+@keyframes explorerSpin { to { transform: rotate(360deg); } }
+.explorer-loading-text {
+    font-family: 'Consolas', monospace;
+    font-size: 0.8rem;
+    letter-spacing: 2px;
+    text-shadow: 0 0 6px rgba(51, 255, 51, 0.7);
+    animation: explorerLoadBlink 1.4s infinite;
+}
+@keyframes explorerLoadBlink {
+    0%, 100% { opacity: 1; }
+    50%      { opacity: 0.4; }
+}
+
+/* ---------- Lista ---------- */
+.explorer-list {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    font-family: 'Consolas', monospace;
+}
+
+.explorer-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 8px 12px;
+    background: #080808;
+    border: 1px solid rgba(0, 255, 0, 0.15);
+    cursor: pointer;
+    transition: all 0.12s;
+    user-select: none;
+}
+.explorer-item:hover {
+    background: #0f1f0f;
+    border-color: #33ff33;
+    transform: translateX(2px);
+}
+.explorer-item-up {
+    background: rgba(0, 40, 0, 0.4);
+    border-color: rgba(0, 255, 0, 0.3);
+}
+
+.explorer-item-icon {
+    font-size: 1.1rem;
+    flex-shrink: 0;
+    width: 22px;
+    text-align: center;
+}
+.explorer-item-info {
+    flex: 1;
+    min-width: 0;
+}
+.explorer-item-name {
+    color: #e8ffe8;
+    font-size: 0.85rem;
+    font-weight: bold;
+    margin-bottom: 2px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.explorer-item-meta {
+    color: #558855;
+    font-size: 0.7rem;
+    letter-spacing: 0.5px;
+}
+.explorer-item-arrow {
+    color: #33ff33;
+    font-size: 0.9rem;
+    flex-shrink: 0;
+    opacity: 0.5;
+}
+.explorer-item:hover .explorer-item-arrow { opacity: 1; }
+
+.explorer-item-dir .explorer-item-name { color: #44ddff; }
+.explorer-item-dir:hover { border-color: #44ddff; background: #0a1a1f; }
+.explorer-item-exe .explorer-item-name { color: #ffcc00; }
+.explorer-item-exe:hover { border-color: #ffcc00; background: #1f1a08; }
+.explorer-item-trace .explorer-item-name { color: #ff5577; }
+.explorer-item-trace:hover { border-color: #ff5577; background: #1f0a10; }
+.explorer-item-zip .explorer-item-name { color: #ff8844; }
+.explorer-item-zip:hover { border-color: #ff8844; background: #1f1008; }
+
+.explorer-empty {
+    text-align: center;
+    padding: 30px 20px;
+    color: #556655;
+    font-size: 0.82rem;
+    letter-spacing: 1px;
+    border: 1px dashed rgba(0, 255, 0, 0.2);
+    font-family: 'Consolas', monospace;
+}
+
+/* ---------- Preview de archivo (pantalla completa del explorer) ---------- */
+.explorer-preview {
+    position: absolute;
+    inset: 0;
+    background: #0a0e14;
+    display: flex;
+    flex-direction: column;
+    animation: explorerPreviewIn 0.25s ease-out;
+    z-index: 5;
+}
+@keyframes explorerPreviewIn {
+    from { opacity: 0; transform: translateY(15px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+.explorer-preview-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 6px 12px;
+    background: rgba(0, 40, 60, 0.8);
+    border-bottom: 1px solid rgba(68, 221, 255, 0.4);
+    flex-shrink: 0;
+}
+.explorer-preview-title {
+    color: #44ddff;
+    font-size: 0.76rem;
+    font-weight: bold;
+    letter-spacing: 1px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.explorer-preview-close {
+    background: transparent;
+    border: 1px solid #44ddff;
+    color: #44ddff;
+    font-family: inherit;
+    font-size: 0.68rem;
+    font-weight: bold;
+    padding: 2px 8px;
+    cursor: pointer;
+    transition: all 0.15s;
+    flex-shrink: 0;
+}
+.explorer-preview-close:hover { background: #44ddff; color: #000; }
+
+.explorer-preview-body {
+    flex: 1;
+    overflow-y: auto;
+    margin: 0;
+    padding: 10px 14px;
+    color: #a0ffa0;
+    font-family: 'Consolas', monospace;
+    font-size: 0.76rem;
+    line-height: 1.55;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    overflow-wrap: anywhere;
+}
+.explorer-preview-body.explorer-preview-error { color: #ff8899; }
+.explorer-preview-body.explorer-preview-warn  { color: #ffcc44; }
+.explorer-preview-body.explorer-preview-exe   { color: #ffcc00; }
+.explorer-preview-body.explorer-preview-bin   { color: #33ff33; font-size: 0.7rem; }
+
+/* ---------- Mobile ---------- */
+@media (max-width: 900px), (pointer: coarse) {
+    #explorer-panel { flex: 1.5 1 0; }
+    .explorer-header { padding: 5px 8px; gap: 6px; }
+    .explorer-title { font-size: 0.7rem; letter-spacing: 1px; }
+    .explorer-path { font-size: 0.7rem; padding: 2px 8px; }
+    .explorer-item { padding: 10px 12px; gap: 10px; }
+    .explorer-item-name { font-size: 0.82rem; }
+    .explorer-item-meta { font-size: 0.66rem; }
+    .explorer-item-icon { font-size: 1.15rem; }
+    .explorer-preview-body { font-size: 0.72rem; padding: 8px 10px; }
+    #terminal-header { font-size: 0.7rem; letter-spacing: 2px; padding: 4px 10px; }
+}

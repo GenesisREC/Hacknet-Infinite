@@ -90,7 +90,8 @@ function getSuggestions(inputText) {
     'netmap', 'connect', 'disconnect', 'scan',
     'probe', 'run', 'scp', 'unzip', 'login',
     'porthack', 'wallbreaker', 'tools', 'ps',
-    'hardware', 'debug', 'clear', 'restart', 'reset'
+    'hardware', 'debug', 'clear', 'restart', 'reset',
+    'explorer'
 ];
         matches = commands.filter(c => c.startsWith(currentPart.toLowerCase()));
     } else if (parts[0].toLowerCase() === 'connect') {
@@ -104,8 +105,18 @@ function getSuggestions(inputText) {
         gameState.servers.forEach(s => { if (s.discovered) ips.push(s.ip); });
         matches = ips.filter(ip => ip.startsWith(currentPart));
     } else if (parts[0].toLowerCase() === 'run') {
-        if (parts.length === 2) matches = localFS['/bin'].children.filter(t => t.startsWith(currentPart));
-        else if (parts.length === 3 && gameState.isConnected && gameState.currentServer) {
+        if (parts.length === 2) {
+            // Binarios de /bin + HELP.exe (que vive fuera de /bin)
+            const binCandidates = (localFS['/bin'] && localFS['/bin'].children) || [];
+            const extras = [];
+            if (localFS['/home/user/documentos/HELP.exe'] &&
+                localFS['/home/user/documentos/HELP.exe'].isHelpExe) {
+                extras.push('HELP.exe');
+            }
+            const all = [...binCandidates, ...extras];
+            const cp = currentPart.toLowerCase();
+            matches = all.filter(t => t.toLowerCase().startsWith(cp));
+        } else if (parts.length === 3 && gameState.isConnected && gameState.currentServer) {
             matches = gameState.currentServer.ports.map(p => p.port.toString()).filter(p => p.startsWith(currentPart));
         }
     } else if (parts[0].toLowerCase() === 'netmap') {

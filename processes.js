@@ -339,6 +339,11 @@ function updateUI() {
     }
 
     renderProcesses();
+
+    // Sincronizar Explorer si está abierto
+    if (typeof Explorer !== 'undefined' && Explorer.open && typeof renderExplorer === 'function') {
+        try { renderExplorer(); } catch (e) {}
+    }
 }
 
 function killProcess(procId) {

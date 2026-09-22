@@ -452,7 +452,6 @@ function handleHacknetCommand(cmd) {
         case 'disconnect':
             exitHacknet();
             break;
-
         default:
             output.innerHTML += `<span class="text-error">Comando no reconocido. Escribí 'help'.</span><br>`;
     }
@@ -1248,7 +1247,24 @@ if (typeof InteractiveTutorialOnCommand === 'function') {
         }
 
         case 'cd': {
-            if (!args[1] || args[1] === '~') { setCurrentCWD('/home/user'); updateUI(); break; }
+            // Sin argumento → raíz absoluta del FS actual
+            if (!args[1]) {
+                setCurrentCWD('/');
+                updateUI();
+                break;
+            }
+            // ~ → /home/user si existe; si no, / (evita "carpetas fantasma")
+            if (args[1] === '~') {
+                const fsTilde = getCurrentFS();
+                if (fsTilde['/home/user'] && fsTilde['/home/user'].type === 'dir') {
+                    setCurrentCWD('/home/user');
+                } else {
+                    setCurrentCWD('/');
+                    output.innerHTML += `<span class="text-warning">cd: no hay /home/user en este sistema, fuiste a /</span><br>`;
+                }
+                updateUI();
+                break;
+            }
             const fsCd = getCurrentFS(), cwdCd = getCurrentCWD();
             let targetDir = args[1];
             if (targetDir === '..') targetDir = cwdCd.substring(0, cwdCd.lastIndexOf('/')) || '/';
@@ -1578,7 +1594,15 @@ if (typeof InteractiveTutorialOnCommand === 'function') {
     output.innerHTML += `<span class="text-success">[✓] Velocidad: ×${mult}</span><br>`;
     break;
 }
-
+        case 'explorer':
+        case 'ex': {
+            if (typeof toggleExplorer === 'function') {
+                toggleExplorer();
+            } else {
+                output.innerHTML += `<span class="text-error">Explorer no disponible.</span><br>`;
+            }
+            break;
+        }
         case 'clear': output.innerHTML = ''; break;
         case 'clearsave':
             clearSave();

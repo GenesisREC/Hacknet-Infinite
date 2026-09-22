@@ -315,6 +315,21 @@
      ============================================================ -->
 <div class="main-content">
     <div class="center-panel">
+<div id="explorer-panel" style="display:none;">
+            <div class="explorer-header">
+                <div class="explorer-title">📁 EXPLORER</div>
+                <div class="explorer-path" id="explorer-path">/</div>
+                <button class="explorer-close" onclick="toggleExplorer()">[X]</button>
+            </div>
+            <div class="explorer-body" id="explorer-body">
+                <div class="explorer-loading" id="explorer-loading">
+                    <div class="explorer-spinner"></div>
+                    <div class="explorer-loading-text">Cargando directorio...</div>
+                </div>
+                <div class="explorer-list" id="explorer-list" style="display:none;"></div>
+            </div>
+        </div>
+        <div id="terminal-header">TERMINAL</div>
         <div id="terminal-output">
             <span class="text-sys">Sistema iniciado. Bienvenido a Hacknet Infinite.</span><br>
             <span class="text-sys">Escribe </span><span class="text-cmd">'help'</span><span class="text-sys"> para ver la lista de comandos.</span><br><br>
@@ -447,6 +462,7 @@
 <script src="connect.js"></script>
 <script src="lastchance.js"></script>
 <script src="InteractiveTutorial.js"></script>
+<script src="explorer.js"></script>
 <script src="commands.js"></script>
 <script src="main.js"></script>
 <script src="update-checker.js"></script> 

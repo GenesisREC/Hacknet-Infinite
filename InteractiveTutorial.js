@@ -14,6 +14,14 @@ const IT_STEPS = [
       hint: null, hintText: 'Si ya sabés lo que hacés, podés cerrar este panel con el botón [X].',
       waitForButton: true, buttonLabel: '▸ EMPEZAR' },
 
+    { id: 'intro_explorer',
+      title: 'Truco · Si te perdés, hay un explorador',
+      body: 'Hacknet se juega escribiendo comandos, pero si en algún momento te mareás con tanto texto, tenés una herramienta de apoyo: el explorador visual. Se abre con "explorer" (o su atajo "ex"), se muestra arriba de la terminal, y te deja navegar carpetas y archivos con clicks. No reemplaza a los comandos, solo es una ayuda. Después del tutorial podés probarlo cuando quieras.',
+      hint: null,
+      hintText: 'No es obligatorio. Lo menciono para que sepas que existe.',
+      waitForButton: true,
+      buttonLabel: '▸ ENTENDIDO' },
+	
     { id: 'netmap_open',
       title: 'Paso 1 · Abrí el NetMap',
       body: 'El NetMap es tu mapa de la red. Ahí aparecen los servidores que vas descubriendo. Escribí el comando y apretá ENTER.',
@@ -166,6 +174,7 @@ const IT_STEPS = [
       check: () => !localFS['/home/user/documentos/HELP.exe'] }
 ];
 
+const IT_STATE_KEY = 'hacknet_tutorial_state_v1';
 // ============================================================
 // ESTADO
 // ============================================================
@@ -187,6 +196,41 @@ const InteractiveTutorial = {
     executedCommands: new Set()
 };
 
+// ------------------------------------------------------------
+// Persistencia — sobrevivir al F5
+// ------------------------------------------------------------
+function IT_SaveState() {
+    if (!InteractiveTutorial || !InteractiveTutorial.active) return;
+    try {
+        const data = {
+            active: true,
+            currentStepIndex: InteractiveTutorial.currentStepIndex,
+            executedCommands: Array.from(InteractiveTutorial.executedCommands || []),
+            ts: Date.now()
+        };
+        localStorage.setItem(IT_STATE_KEY, JSON.stringify(data));
+    } catch (e) {}
+}
+
+function IT_ClearState() {
+    try { localStorage.removeItem(IT_STATE_KEY); } catch (e) {}
+}
+
+function IT_LoadState() {
+    try {
+        const raw = localStorage.getItem(IT_STATE_KEY);
+        if (!raw) return null;
+        const data = JSON.parse(raw);
+        if (!data || !data.active) return null;
+        // Estados viejos (>7 días) se descartan
+        if (data.ts && (Date.now() - data.ts) > 7 * 24 * 60 * 60 * 1000) {
+            IT_ClearState();
+            return null;
+        }
+        return data;
+    } catch (e) { return null; }
+}
+
 // ============================================================
 // API PÚBLICA
 // ============================================================
@@ -207,6 +251,7 @@ function InteractiveTutorialStart() {
     IT_ShowSection();
     IT_RenderStep();
     IT_StartPolling();
+    IT_SaveState();
 
     try { if (typeof soundSuccess === 'function') soundSuccess(); } catch (e) {}
 }
@@ -216,14 +261,12 @@ function InteractiveTutorialStop(reason) {
     InteractiveTutorial.active = false;
     InteractiveTutorial.panelVisible = false;
     IT_StopPolling();
+    IT_ClearState();
 
-    // Quitar clases de tab del panel derecho
     const rp = document.querySelector('.right-panel');
     if (rp) {
         rp.classList.remove('tabs-active', 'tab-help', 'tab-processes');
     }
-    const sec = document.getElementById('help-section');
-    if (sec) sec.style.display = 'none';
 
     try { if (typeof saveGame === 'function') saveGame(); } catch (e) {}
 
@@ -235,22 +278,44 @@ function InteractiveTutorialStop(reason) {
 }
 
 function closeHelpApp() {
-    // Botón [X] del panel. Solo oculta, no detiene el tutorial.
+    // Botón [X] del panel. Reinicia el tutorial desde cero y cierra la pestaña.
     InteractiveTutorial.panelVisible = false;
+    InteractiveTutorial.active = false;
+    InteractiveTutorial.currentStepIndex = 0;
+    InteractiveTutorial.executedCommands = new Set();
+    IT_StopPolling();
+    IT_ClearState();
 
-    if (InteractiveTutorial.active) {
-        // Todavía hay tutorial corriendo: cambiamos a la pestaña de procesos.
-        switchRightPanelTab('processes');
-        output.innerHTML += `<span class="text-muted">[HELP.exe] Manual cerrado. Escribí </span><span class="text-cmd">run HELP.exe</span><span class="text-muted"> para reabrirlo.</span><br>`;
-        output.scrollTop = output.scrollHeight;
-    } else {
-        // Tutorial ya terminado: quitamos todo el sistema de tabs.
-        const rp = document.querySelector('.right-panel');
-        if (rp) rp.classList.remove('tabs-active', 'tab-help', 'tab-processes');
-        const sec = document.getElementById('help-section');
-        if (sec) sec.style.display = 'none';
+    // Quitar el sistema de tabs del panel derecho (NO tocar style.display
+    // del #help-section: lo controla el CSS con la clase .tab-help)
+    const rp = document.querySelector('.right-panel');
+    if (rp) {
+        rp.classList.remove('tabs-active', 'tab-help', 'tab-processes');
     }
+
+    // Limpiar el contenido inyectado para que en la próxima apertura
+    // se reconstruya desde cero
+    const container = document.getElementById('help-content');
+    if (container) {
+        container.innerHTML = '';
+        delete container.dataset.itBuilt;
+    }
+    InteractiveTutorial.titleEl = null;
+    InteractiveTutorial.bodyEl = null;
+    InteractiveTutorial.hintEl = null;
+    InteractiveTutorial.hintCodeEl = null;
+    InteractiveTutorial.useBtn = null;
+    InteractiveTutorial.hintTextEl = null;
+    InteractiveTutorial.actionBtn = null;
+    InteractiveTutorial.progressBarEl = null;
+    InteractiveTutorial.stepCounterEl = null;
+
+    output.innerHTML += `<span class="text-muted">[HELP.exe] Manual cerrado. El tutorial se reiniciará desde el principio cuando lo abras de nuevo con </span><span class="text-cmd">run HELP.exe</span><span class="text-muted">.</span><br>`;
+    output.scrollTop = output.scrollHeight;
+
+    try { if (typeof saveGame === 'function') saveGame(); } catch (e) {}
 }
+
 
 function InteractiveTutorialOnCommand(action, args, rawCmd) {
     if (!InteractiveTutorial.active) return;
@@ -260,6 +325,7 @@ function InteractiveTutorialOnCommand(action, args, rawCmd) {
         InteractiveTutorial.executedCommands.add('run:' + args[1]);
     }
     IT_CheckCurrentStep();
+    IT_SaveState();
 }
 
 window.InteractiveTutorialStart = InteractiveTutorialStart;
@@ -449,6 +515,7 @@ function IT_CompleteStep() {
 
     IT_RenderStep();
     IT_CheckCurrentStep();
+    IT_SaveState();
 }
 
 // ============================================================
@@ -498,3 +565,56 @@ function IT_UseHintCommand() {
     }, 0);
     try { if (typeof soundKeyClick === 'function') soundKeyClick(); } catch (e) {}
 }
+// ============================================================
+// AUTO-RESUME — Reanudar tutorial tras un F5
+// ============================================================
+(function IT_AutoResumeOnLoad() {
+    const saved = IT_LoadState();
+    if (!saved) return;
+
+    let attempts = 0;
+    const maxAttempts = 40; // 20 segundos máximo esperando al setup
+
+    function tryResume() {
+        attempts++;
+
+        // Esperar a que el setup esté completo y el FS exista
+        if (typeof gameState === 'undefined' || !gameState.setupComplete) {
+            if (attempts < maxAttempts) setTimeout(tryResume, 500);
+            return;
+        }
+
+        // Si HELP.exe ya no está en el FS local, el tutorial se completó
+        if (typeof localFS === 'undefined' ||
+            !localFS['/home/user/documentos/HELP.exe']) {
+            IT_ClearState();
+            return;
+        }
+
+        // Reanudar el tutorial en el mismo paso
+        InteractiveTutorial.active = true;
+        InteractiveTutorial.currentStepIndex = saved.currentStepIndex || 0;
+        InteractiveTutorial.executedCommands = new Set(saved.executedCommands || []);
+        InteractiveTutorial.panelVisible = false;
+
+        IT_BuildContent();
+        IT_ShowSection();
+        IT_RenderStep();
+        IT_StartPolling();
+
+        try {
+            if (typeof output !== 'undefined') {
+                output.innerHTML += `<span class="text-info">[HELP.exe] Retomando tutorial desde el paso ${InteractiveTutorial.currentStepIndex + 1}...</span><br>`;
+                output.scrollTop = output.scrollHeight;
+            }
+        } catch (e) {}
+
+        try { if (typeof soundSuccess === 'function') soundSuccess(); } catch (e) {}
+    }
+
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', () => setTimeout(tryResume, 800));
+    } else {
+        setTimeout(tryResume, 800);
+    }
+})();
