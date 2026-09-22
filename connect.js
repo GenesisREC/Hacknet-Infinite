@@ -862,18 +862,22 @@ function _bindSetupForm() {
 
         updateUI();
 
-        // Reveal progresivo del HUD + tutorial al final
+        // Reveal progresivo del HUD + elección de tutorial al final
         revealHUDProgressive(() => {
             input.disabled = false;
             input.focus();
 
-            if (typeof openTutorial === 'function') {
+            // Al terminar el setup mostramos el modal de elección.
+            // Si el jugador elige "guiado", arranca el InteractiveTutorial.
+            // Si elige "experto", se abre el libro del manual (tutorial viejo).
+            if (typeof InteractiveTutorialShowChoice === 'function') {
+                setTimeout(() => InteractiveTutorialShowChoice(), 500);
+            } else if (typeof openTutorial === 'function') {
                 setTimeout(() => openTutorial(), 500);
             }
         });
     }
-
-    _setupUserHandler = (e) => {
+_setupUserHandler = (e) => {
         if (e.key === 'Enter') {
             e.preventDefault();
             e.stopPropagation();

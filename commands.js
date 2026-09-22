@@ -196,6 +196,27 @@ function createMissionTargetServer(mission) {
     server.hiddenFromScan = true;
     server.fromMission = mission.id;
 
+    // ─── GARANTÍA DE MISIONES ─────────────────────────────────
+    // Aseguramos que SIEMPRE haya al menos `reqPorts` puertos
+    // rompibles con las herramientas actuales del jugador. Los
+    // demás pueden quedar in-hackeables para mantener la sensación
+    // de dificultad, pero la misión es siempre completable.
+    const playerV = getBestToolVersion();
+    const attackable = server.ports.filter(p => ATTACKABLE_SERVICES.includes(p.service));
+    const breakable = attackable.filter(p => parseFloat(p.v) <= playerV);
+    const needBreakable = server.reqPorts;
+    if (breakable.length < needBreakable) {
+        const toFix = needBreakable - breakable.length;
+        // Empezar por los que están más cerca de ser rompibles
+        const candidates = attackable
+            .filter(p => parseFloat(p.v) > playerV)
+            .sort((a, b) => parseFloat(a.v) - parseFloat(b.v));
+        for (let i = 0; i < toFix && i < candidates.length; i++) {
+            candidates[i].v = (playerV * 0.95).toFixed(1);
+        }
+    }
+    // ──────────────────────────────────────────────────────────
+
     // Inyectar archivos específicos
     if (mission.meta.includeFiles) {
         mission.meta.includeFiles.forEach(fname => {
@@ -605,7 +626,9 @@ function handleCommand(cmd) {
         output.scrollTop = output.scrollHeight;
         return;
     }
-
+if (typeof InteractiveTutorialOnCommand === 'function') {
+        try { InteractiveTutorialOnCommand(action, args, trimmed); } catch (e) { console.warn('[it-hook]', e); }
+    }
     switch (action) {
                                 case 'help':
             output.innerHTML += `<div class="msg-box" style="border-color:#33ff33; padding:18px 22px;">
@@ -1140,6 +1163,21 @@ function handleCommand(cmd) {
 
         case 'run': {
     if (!args[1]) { output.innerHTML += `<span class="text-error">Uso: run [exe] [puerto?]</span><br>`; break; }
+
+    // HELP.exe es una app especial: se busca en el FS local.
+    // Si existe, abre el tutorial interactivo. Si no, error.
+    if (args[1].toLowerCase() === 'help.exe') {
+        const helpPath = '/home/user/documentos/HELP.exe';
+        if (localFS[helpPath] && localFS[helpPath].isHelpExe) {
+            if (typeof InteractiveTutorialStart === 'function') {
+                InteractiveTutorialStart();
+            }
+        } else {
+            output.innerHTML += `<span class="text-error">run: HELP.exe no encontrado (¿lo borraste?).</span><br>`;
+        }
+        break;
+    }
+
     const toolName = args[1];
     const template = TOOL_TEMPLATES[toolName];
     if (!template) { output.innerHTML += `<span class="text-error">'${toolName}' no es válido.</span><br>`; break; }
@@ -1243,8 +1281,42 @@ function handleCommand(cmd) {
             break;
         }
 
-        case 'rm': {
+                case 'rm': {
             if (!args[1]) { output.innerHTML += `<span class="text-error">Especificá archivo o *</span><br>`; break; }
+
+            // HELP.exe: es un archivo especial. Borrarlo termina el tutorial.
+            const rmLower = args[1].toLowerCase();
+            if (rmLower === 'help.exe' || rmLower.endsWith('/help.exe')) {
+                const helpPathRm = resolvePath(args[1], getCurrentCWD());
+                if (localFS[helpPathRm] && localFS[helpPathRm].isHelpExe) {
+                    // Borrar del FS
+                    delete localFS[helpPathRm];
+                    const helpParent = helpPathRm.substring(0, helpPathRm.lastIndexOf('/')) || '/';
+                    if (localFS[helpParent]) {
+                        localFS[helpParent].children = localFS[helpParent].children.filter(c => c !== 'HELP.exe');
+                    }
+                    output.innerHTML += `<span class="text-success">✓ HELP.exe eliminado</span><br>`;
+
+                    // Detener el tutorial definitivamente
+                    if (typeof InteractiveTutorialStop === 'function') {
+                        InteractiveTutorialStop('complete');
+                    }
+
+                    // Mensaje final
+                    output.innerHTML += `<div class="msg-box" style="border-color:#33ff33; margin-top:8px;">
+                        <div style="color:#33ff33; font-weight:bold;">[✓] TUTORIAL COMPLETADO</div>
+                        <div class="text-muted" style="margin-top:6px;">Ya sabés lo básico. Podés consultar el manual completo desde el botón MANUAL (o F1) cuando quieras.</div>
+                    </div>`;
+                    output.scrollTop = output.scrollHeight;
+                    saveGame();
+                    break;
+                } else {
+                    output.innerHTML += `<span class="text-error">rm: HELP.exe no existe en esta carpeta.</span><br>`;
+                    break;
+                }
+            }
+
+            // --- resto normal del rm ---
             const fsRm = getCurrentFS(), cwdRm = getCurrentCWD();
             if (!gameState.isConnected) {
                 const testPath = args[1] === '*' ? cwdRm : resolvePath(args[1], cwdRm);

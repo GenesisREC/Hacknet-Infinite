@@ -221,6 +221,7 @@
         <div class="news-tabs">
             <button class="news-tab active" id="news-tab-latest" onclick="switchNewsTab('latest')">ÚLTIMAS NOTICIAS</button>
             <button class="news-tab" id="news-tab-updates" onclick="switchNewsTab('updates')">UPDATES</button>
+            <button class="news-tab" id="news-tab-reviews" onclick="switchNewsTab('reviews')">REVIEWS</button>
         </div>
         <div class="news-toolbar-spacer"></div>
         <button class="news-btn news-btn-logout" onclick="closeNewsWeb()">[X] SALIR</button>
@@ -354,7 +355,22 @@
                 </div>
             </div>
         </div>
-        
+        <div id="right-panel-tabs">
+            <button class="right-tab" id="tab-help-btn" onclick="switchRightPanelTab('help')">HELP.exe</button>
+            <button class="right-tab" id="tab-processes-btn" onclick="switchRightPanelTab('processes')">PROCESOS</button>
+        </div>
+        <div id="help-section">
+            <div class="section-title" style="color:#33ff33; border-bottom-color:#33ff33;">HELP.exe [0 GB]</div>
+            <div class="app-window" style="border-color:#33ff33; box-shadow:0 0 10px rgba(51,255,51,0.25);">
+                <div class="app-header" style="background:#33ff33;">
+                    <span id="help-step-counter">PASO 1 / 19</span>
+                    <span class="close-btn" onclick="closeHelpApp()">[X]</span>
+                </div>
+                <div class="app-content" style="padding:10px 12px; display:block;" id="help-content">
+                    <!-- El motor del tutorial inyecta acá -->
+                </div>
+            </div>
+        </div>
         <div id="processes-section">
             <div class="section-title">Procesos Activos</div>
             <div id="processes-list">
@@ -419,6 +435,7 @@
 <script src="migration.js"></script>
 <script src="lore.js"></script>
 <script src="news.js"></script> 
+<script src="reviews.js"></script>
 <script src="data.js"></script> 
 <script src="state.js"></script>
 <script src="animations.js"></script>
@@ -429,7 +446,9 @@
 <script src="market.js"></script>
 <script src="connect.js"></script>
 <script src="lastchance.js"></script>
+<script src="InteractiveTutorial.js"></script>
 <script src="commands.js"></script>
 <script src="main.js"></script>
+<script src="update-checker.js"></script> 
 </body>
 </html>

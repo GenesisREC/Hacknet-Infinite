@@ -377,9 +377,19 @@ function buildInitialLocalFS() {
         '/bin/http_crack.exe': makeExe('http_crack.exe', 1.0),
         '/home': { type: 'dir', children: ['user'] },
         '/home/user': { type: 'dir', children: [
+            'documentos',
             'notas.txt', 'comandos.txt', 'netmap.txt', 'conexion.txt',
             'hackeo.txt', 'rastreo.txt', 'infomarket.txt', 'hacknet.txt'
         ] },
+        '/home/user/documentos': { type: 'dir', children: ['HELP.exe'] },
+        '/home/user/documentos/HELP.exe': {
+            type: 'file',
+            content: '[HELP.exe v1.0] Manual interactivo. Ejecutalo con "run HELP.exe".',
+            size: 4.5,
+            version: 1.0,
+            isExecutable: true,
+            isHelpExe: true
+        },
         '/home/user/notas.txt': makeFile(
 `Bienvenido.
 
@@ -1115,16 +1125,16 @@ Este servidor es de pruebas.`,
     binChildren.push('wallbreaker.exe');
 
     const ports = [
-        { port: 22,   service: 'SSH',    name: 'SSH',    v: '1.5', state: 'blocked' },
-        { port: 80,   service: 'HTTP',   name: 'HTTP',   v: '1.5', state: 'blocked' },
-        { port: 1433, service: 'SQL',    name: 'SQL',    v: '1.5', state: 'blocked' },
-        { port: 21,   service: 'FTP',    name: 'FTP',    v: '1.5', state: 'blocked' },
-        { port: 25,   service: 'SMTP',   name: 'SMTP',   v: '1.5', state: 'blocked' },
-        { port: 23,   service: 'TELNET', name: 'TELNET', v: '1.5', state: 'blocked' },
-        { port: 53,   service: 'DNS',    name: 'DNS',    v: '1.5', state: 'blocked' }
+        { port: 22,   service: 'SSH',    name: 'SSH',    v: '1.0', state: 'blocked' },
+        { port: 80,   service: 'HTTP',   name: 'HTTP',   v: '1.0', state: 'blocked' },
+        { port: 1433, service: 'SQL',    name: 'SQL',    v: '1.0', state: 'blocked' },
+        { port: 21,   service: 'FTP',    name: 'FTP',    v: '1.0', state: 'blocked' },
+        { port: 25,   service: 'SMTP',   name: 'SMTP',   v: '1.0', state: 'blocked' },
+        { port: 23,   service: 'TELNET', name: 'TELNET', v: '1.0', state: 'blocked' },
+        { port: 53,   service: 'DNS',    name: 'DNS',    v: '1.0', state: 'blocked' }
     ];
     const firewall = {
-        hasFirewall: true, active: true, version: 1.0,
+        hasFirewall: false, active: false, version: 1.0,
         analyzed: false, analyzeUses: 0, broken: false,
         capturedHex: null, wallMarks: null, tier: 0
     };
@@ -1138,8 +1148,8 @@ Este servidor es de pruebas.`,
         traceLogPath: null,
         discovered: true,
         hiddenFromScan: true,
-        hasTrace: true,
-        traceDuration: 600,
+        hasTrace: false,
+        traceDuration: 0,
         securityLevel: 0,
         credentials: { user: 'probe', pass: 'probe' },
         credentialsRevealed: true,

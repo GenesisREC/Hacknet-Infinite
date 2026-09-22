@@ -495,12 +495,12 @@ function closeNewsWeb() {
 }
 
 function updateNewsTabs() {
-    const latestBtn = document.getElementById('news-tab-latest');
+    const latestBtn  = document.getElementById('news-tab-latest');
     const updatesBtn = document.getElementById('news-tab-updates');
-    if (!latestBtn || !updatesBtn) return;
-    const isLatest = gameState.newsTab === 'latest';
-    latestBtn.classList.toggle('active', isLatest);
-    updatesBtn.classList.toggle('active', !isLatest);
+    const reviewsBtn = document.getElementById('news-tab-reviews');
+    if (latestBtn)  latestBtn.classList.toggle('active',  gameState.newsTab === 'latest');
+    if (updatesBtn) updatesBtn.classList.toggle('active', gameState.newsTab === 'updates');
+    if (reviewsBtn) reviewsBtn.classList.toggle('active', gameState.newsTab === 'reviews');
 }
 
 // ============================================================
@@ -534,6 +534,12 @@ function renderNewsWeb() {
 
     if (gameState.newsTab === 'updates') {
         renderNewsUpdatesTab(content);
+    } else if (gameState.newsTab === 'reviews') {
+        if (typeof renderReviewsTab === 'function') {
+            renderReviewsTab(content);
+        } else {
+            content.innerHTML = `<div class="news-empty">Sistema de reviews no cargado.</div>`;
+        }
     } else {
         renderNewsLatestTab(content);
     }
@@ -682,9 +688,9 @@ function switchNewsTab(tab) {
     updateNewsTabs();
     const urlEl = document.getElementById('news-web-url');
     if (urlEl) {
-        urlEl.textContent = tab === 'latest'
-            ? 'https://news.com/latest'
-            : 'https://news.com/updates';
+        if (tab === 'latest')       urlEl.textContent = 'https://news.com/latest';
+        else if (tab === 'updates') urlEl.textContent = 'https://news.com/updates';
+        else if (tab === 'reviews') urlEl.textContent = 'https://news.com/reviews';
     }
     if (tab === 'updates') {
         markReleaseAsSeen();

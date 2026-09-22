@@ -150,12 +150,28 @@ function drawNodeOrb(x, y, color, label, opts) {
     }
 
     if (label) {
-        const fontSize = 8.5 / netmapZoom;
-        ctx.font = `${fontSize}px Consolas, monospace`;
+        // El texto crece linealmente con el zoom, con techo.
+        // Base 11px al zoom 1, +3.5px por unidad de zoom, cap a 22px.
+        // Nunca por debajo de 11px (zoom out no lo achica).
+        const screenSize = Math.max(11, Math.min(22, 11 + (netmapZoom - 1) * 3.5));
+        const fontSize = screenSize / netmapZoom;
+
+        // Bold a partir de 15px para mejorar legibilidad
+        const fontWeight = screenSize >= 15 ? 'bold ' : '';
+        ctx.font = `${fontWeight}${fontSize}px Consolas, monospace`;
         ctx.textAlign = 'center';
         ctx.textBaseline = 'top';
+
+        // Offset proporcional al radio del círculo (para que respire)
+        const labelY = y + radius + Math.max(5 / netmapZoom, 3.5);
+
+        // Sombra sutil para que se lea sobre cualquier fondo
+        ctx.save();
+        ctx.shadowBlur = 4 / netmapZoom;
+        ctx.shadowColor = 'rgba(0, 0, 0, 0.9)';
         ctx.fillStyle = isActive ? color : color + '77';
-        ctx.fillText(label, x, y + radius + 4 / netmapZoom);
+        ctx.fillText(label, x, labelY);
+        ctx.restore();
     }
 }
 
@@ -243,12 +259,15 @@ if (news) {
         else color = '#33ff33';
         const active = s.server.discovered;
         drawNodeOrb(s.x, s.y, color, s.ip, { radius: 6, glow: true, active });
-        if (s.server.pinned) {
+                if (s.server.pinned) {
+            // Mismo criterio que los labels: lineal + cap
+            const pinScreenSize = Math.max(12, Math.min(22, 12 + (netmapZoom - 1) * 3.5));
             ctx.fillStyle = '#ffdd44';
-            ctx.font = `bold ${10 / netmapZoom}px Consolas, monospace`;
+            ctx.font = `bold ${pinScreenSize / netmapZoom}px Consolas, monospace`;
             ctx.textAlign = 'center';
             ctx.textBaseline = 'bottom';
-            ctx.fillText('📌', s.x, s.y - 8 / netmapZoom);
+            const pinOffset = Math.max(10 / netmapZoom, 6);
+            ctx.fillText('📌', s.x, s.y - pinOffset);
         }
     });
 
