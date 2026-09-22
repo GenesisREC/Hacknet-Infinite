@@ -40,6 +40,7 @@ const NEWS_UPDATES = [
             { text: 'Los pasos del tutorial que requieren escribir comandos incluyen un botón USAR que los completa en la terminal, ideal para mobile.', tag: 'new' }
         ]
     },
+        {
         version: 'v1.8.0',
         date: '2026-09-22',
         title: 'Hacknet Infinite ahora se juega desde el celular',
