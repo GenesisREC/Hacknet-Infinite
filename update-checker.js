@@ -5,6 +5,10 @@
 // la versión remota es distinta a la que está corriendo el cliente,
 // muestra un toast "RECARGAR". El jugador decide cuándo.
 //
+// Persiste la versión descartada en localStorage para no volver a
+// mostrar el mismo toast tras un reload (aunque NEWS_UPDATES no
+// se haya actualizado).
+//
 // IMPORTANTE: cambiar UPDATE_CHECK_URL por la URL real de tu repo.
 // ============================================================
 
@@ -13,11 +17,27 @@ const UPDATE_CHECK_INTERVAL_MS = 3 * 60 * 1000;        // 3 minutos entre checks
 const UPDATE_CHECK_VISIBILITY_MIN_MS = 60 * 1000;      // 1 min mínimo al volver a la pestaña
 const UPDATE_CHECK_INITIAL_DELAY_MS = 30 * 1000;       // 30s después de arrancar
 
+// Clave para recordar versiones ya descartadas por el jugador
+const UPDATE_DISMISSED_KEY = 'hacknet_update_dismissed_version';
+
 let _updateCheckTimer = null;
 let _lastUpdateCheckAt = 0;
 let _knownRemoteVersion = null;
 let _updateToastShownForVersion = null;
 let _updateCheckRunning = false;
+
+// ------------------------------------------------------------
+// Persistencia de versión descartada
+// ------------------------------------------------------------
+function getDismissedVersion() {
+    try { return localStorage.getItem(UPDATE_DISMISSED_KEY); } catch(e) { return null; }
+}
+function setDismissedVersion(v) {
+    try { localStorage.setItem(UPDATE_DISMISSED_KEY, v); } catch(e) {}
+}
+function clearDismissedVersion() {
+    try { localStorage.removeItem(UPDATE_DISMISSED_KEY); } catch(e) {}
+}
 
 // ------------------------------------------------------------
 // Detección de la versión local actual
@@ -73,11 +93,20 @@ async function checkForNewVersion(opts) {
 
         // Comparación semántica: 1.9.2 > 1.9.1
         if (isVersionNewer(remote.version, localVersion)) {
-            // Evitar spamear el toast con la misma versión
-            if (_updateToastShownForVersion !== remote.version) {
+            const dismissed = getDismissedVersion();
+
+            // Solo mostrar si:
+            //  - no lo mostramos ya en esta sesión
+            //  - no fue descartado por el jugador antes
+            if (_updateToastShownForVersion !== remote.version &&
+                dismissed !== remote.version) {
                 _updateToastShownForVersion = remote.version;
                 showServerUpdateToast(remote);
             }
+        } else {
+            // Local alcanzó o superó a remota → limpiar dismissed
+            // (por si en el futuro se publica una versión igual a la descartada)
+            if (getDismissedVersion()) clearDismissedVersion();
         }
 
         _updateCheckRunning = false;
@@ -139,13 +168,19 @@ function showServerUpdateToast(remote) {
     // Listeners
     const closeBtn = toast.querySelector('#sut-close-btn');
     const reloadBtn = toast.querySelector('#sut-reload-btn');
+
     if (closeBtn) {
         closeBtn.addEventListener('click', () => {
+            // Marcar como descartada: no volver a molestar con esta versión
+            setDismissedVersion(remote.version);
             toast.remove();
         });
     }
+
     if (reloadBtn) {
         reloadBtn.addEventListener('click', () => {
+            // Marcar ANTES de recargar, para que tras el reload no vuelva a salir
+            setDismissedVersion(remote.version);
             // Hard reload: bypass de caché
             try {
                 // Método 1: query param único (funciona en todos los navegadores)
@@ -213,3 +248,11 @@ if (document.readyState === 'loading') {
 window.checkForNewVersion = checkForNewVersion;
 window.startUpdateChecker = startUpdateChecker;
 window.stopUpdateChecker = stopUpdateChecker;
+
+// ------------------------------------------------------------
+// Helpers de debug (opcional — desde la consola)
+// ------------------------------------------------------------
+//   clearDismissedVersion()  → vuelve a permitir el toast para la versión actual
+//   getDismissedVersion()    → te dice qué versión está descartada
+window.clearDismissedVersion = clearDismissedVersion;
+window.getDismissedVersion = getDismissedVersion;
