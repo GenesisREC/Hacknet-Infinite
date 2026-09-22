@@ -97,7 +97,18 @@ let netmapAnimFrameId = null;
 let localFS, remoteFS;
 let localCWD = '/home/user';
 let remoteCWD = '/home/user';
-
+// ============================================================
+// HAPTIC — vibración en mobile (no-op en desktop)
+// ============================================================
+function haptic(pattern) {
+    if (typeof navigator === 'undefined' || !navigator.vibrate) return;
+    // Solo vibrar en dispositivos con puntero grueso (touch)
+    try {
+        if (!window.matchMedia('(pointer: coarse)').matches) return;
+    } catch (e) { return; }
+    try { navigator.vibrate(pattern); } catch (e) {}
+}
+window.haptic = haptic;
 // ============================================================
 // AUDIO BASE
 // ============================================================
@@ -147,21 +158,31 @@ function playTone(freq, duration, type, volume, slideTo) {
     } catch(e) {}
 }
 function soundKeyClick() { playTone(700 + Math.random() * 250, 0.018, 'square', 0.012); }
-function soundCommandEnter() { playTone(900, 0.04, 'square', 0.025, 1200); }
-function soundError() { playTone(180, 0.14, 'sawtooth', 0.035, 90); }
+function soundCommandEnter() {
+    playTone(900, 0.04, 'square', 0.025, 1200);
+    if (typeof haptic === 'function') haptic(15);
+}
+
+function soundError() {
+    playTone(180, 0.14, 'sawtooth', 0.035, 90);
+    if (typeof haptic === 'function') haptic([30, 40, 30]);
+}
 function soundSuccess() {
     playTone(700, 0.06, 'sine', 0.04, 1000);
     setTimeout(() => playTone(1100, 0.09, 'sine', 0.035, 1400), 70);
+	haptic(30);
 }
 function soundMissionComplete() {
     [523, 659, 783, 1046].forEach((f, i) => {
         setTimeout(() => playTone(f, 0.2, 'sine', 0.05), i * 80);
     });
+haptic([50, 30, 50, 30, 100]);
 }
-function soundMissionAccepted() { playTone(660, 0.08, 'square', 0.03, 990); }
+function soundMissionAccepted() { playTone(660, 0.08, 'square', 0.03, 990); haptic(30); }
 function soundCrackerDrop() {
     playTone(800, 0.05, 'square', 0.03, 1400);
     setTimeout(() => playTone(1400, 0.12, 'sine', 0.04), 60);
+    haptic([30, 20, 60]);
 }
 
 let scannerOsc = null, scannerGain = null, scannerLFO = null, scannerLFOGain = null, scannerSubOsc = null, scannerSubGain = null;
@@ -177,6 +198,7 @@ function soundScanStart() {
         osc.connect(gain); gain.connect(audioCtx.destination);
         osc.start(); osc.stop(audioCtx.currentTime + 0.3);
     } catch(e) {}
+    haptic(40);
 }
 function startScannerSound() {
     if (!audioCtx || scannerOsc) return;
@@ -198,30 +220,34 @@ function startScannerSound() {
         scannerOsc.start(); scannerLFO.start(); scannerSubOsc.start();
     } catch(e) {}
 }
-function stopScannerSound() {
+function soundScanComplete() {
     if (!audioCtx) return;
-    const t = audioCtx.currentTime;
-    try {
-        if (scannerGain) { scannerGain.gain.cancelScheduledValues(t); scannerGain.gain.setValueAtTime(scannerGain.gain.value, t); scannerGain.gain.linearRampToValueAtTime(0.0001, t + 0.25); }
-        if (scannerSubGain) { scannerSubGain.gain.cancelScheduledValues(t); scannerSubGain.gain.setValueAtTime(scannerSubGain.gain.value, t); scannerSubGain.gain.linearRampToValueAtTime(0.0001, t + 0.25); }
-    } catch(e) {}
-    const oscRef = scannerOsc, lfoRef = scannerLFO, subRef = scannerSubOsc;
-    scannerOsc = null; scannerLFO = null; scannerSubOsc = null;
-    scannerGain = null; scannerLFOGain = null; scannerSubGain = null;
-    setTimeout(() => { try { if (oscRef) oscRef.stop(); } catch(e) {} try { if (lfoRef) lfoRef.stop(); } catch(e) {} try { if (subRef) subRef.stop(); } catch(e) {} }, 320);
+    [523, 659, 880].forEach((f, i) => {
+        try {
+            const osc = audioCtx.createOscillator(); const gain = audioCtx.createGain();
+            osc.type = 'sine'; osc.frequency.value = f;
+            const start = audioCtx.currentTime + i * 0.09;
+            gain.gain.setValueAtTime(0, start);
+            gain.gain.linearRampToValueAtTime(0.05, start + 0.02);
+            gain.gain.exponentialRampToValueAtTime(0.0001, start + 0.38);
+            osc.connect(gain); gain.connect(audioCtx.destination);
+            osc.start(start); osc.stop(start + 0.42);
+        } catch(e) {}
+    });
+    haptic([60, 30, 60]);
 }
-function soundSonarPing() {
+function playTracePip() {
     if (!audioCtx) return;
     try {
-        const osc = audioCtx.createOscillator(); const gain = audioCtx.createGain();
-        osc.type = 'sine';
-        osc.frequency.setValueAtTime(1600, audioCtx.currentTime);
-        osc.frequency.exponentialRampToValueAtTime(750, audioCtx.currentTime + 0.28);
-        gain.gain.setValueAtTime(0.065, audioCtx.currentTime);
-        gain.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + 0.35);
-        osc.connect(gain); gain.connect(audioCtx.destination);
-        osc.start(); osc.stop(audioCtx.currentTime + 0.4);
+        const t = audioCtx.currentTime;
+        const osc = audioCtx.createOscillator(); const g = audioCtx.createGain();
+        osc.type = 'square'; osc.frequency.setValueAtTime(1400, t);
+        g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(0.06, t + 0.004);
+        g.gain.exponentialRampToValueAtTime(0.0001, t + 0.09);
+        osc.connect(g); g.connect(audioCtx.destination);
+        osc.start(t); osc.stop(t + 0.1);
     } catch(e) {}
+    haptic(20);
 }
 function soundScanComplete() {
     if (!audioCtx) return;
@@ -276,6 +302,7 @@ function playTraceCriticalPip() {
         osc.connect(g); g.connect(audioCtx.destination);
         osc.start(t); osc.stop(t + 0.15);
     } catch(e) {}
+    haptic([40, 20, 40]);
 }
 
 // ============================================================

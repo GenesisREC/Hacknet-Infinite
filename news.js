@@ -6,6 +6,25 @@
 // UPDATES — changelog manual
 // ============================================================
 const NEWS_UPDATES = [
+{
+        version: 'v1.8.0',
+        date: '2026-09-22',
+        title: 'Hacknet Infinite ahora se juega desde el celular',
+        body: [
+            { text: 'El juego es jugable en celulares y tablets: layout adaptado a pantallas verticales y controles táctiles.', tag: 'new' },
+            { text: 'Viewport fijo: se desactiva el zoom accidental por doble tap y el rebote de scroll.', tag: 'new' },
+            { text: 'El input del terminal usa 16px en mobile, lo que evita que iOS haga auto-zoom al enfocar.', tag: 'fix' },
+            { text: 'Cuando aparece el teclado virtual, la terminal se scrollea sola para que el prompt no quede tapado.', tag: 'fix' },
+            { text: 'Botones, sugerencias y controles de proceso tienen área táctil más grande.', tag: 'bal' },
+            { text: 'NetMap, wallbreaker y los canvases de los crackers se reescalan al ancho disponible.', tag: 'fix' },
+            { text: 'Los formularios de InfoMarket, HackNet y GoMail se apilan verticalmente en pantallas chicas.', tag: 'fix' },
+            { text: 'La ventana de conexión ocupa toda la pantalla en mobile, con las secciones apiladas.', tag: 'fix' },
+            { text: 'El manual de usuario se adapta a la pantalla del celular.', tag: 'fix' },
+            { text: 'Los efectos :hover ya no se quedan "pegados" después de un tap en mobile.', tag: 'fix' },
+            { text: 'Se eliminó el detector de DevTools y su alarma: disparaba falsos positivos al abrir el teclado virtual, rotar la pantalla o cambiar de app.', tag: 'fix' },
+            { text: 'Se eliminó el spam binario en la consola del navegador.', tag: 'fix' }
+        ]
+    },
         {
         version: 'v1.7.0',
         date: '2026-09-21',

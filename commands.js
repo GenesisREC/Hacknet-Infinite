@@ -1699,7 +1699,6 @@ function resetGame() {
         'white-terminal-overlay',
         'migration-overlay',
         'update-toast',
-        'devtools-alarm-overlay'
     ];
     overlaysToClose.forEach(id => {
         const el = document.getElementById(id);

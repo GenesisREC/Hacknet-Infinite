@@ -615,94 +615,6 @@ function stopCountdown() {
     if (overlay) overlay.style.display = 'none';
 }
 // ============================================================
-// DETECCIÓN DEVTOOLS — solo si hubo RESIZE de viewport
-// ============================================================
-// Reglas:
-//   - DevTools docked → viewport se achica → trigger
-//   - Windows key / screenshot / alt-tab → sin resize → NO trigger
-//   - Cerrás DevTools → viewport vuelve → se apaga
-
-let _devtoolsIsOpen = false;
-let _devtoolsWatcherStarted = false;
-let _devtoolsWasDocked = false;
-let _prevW = window.innerWidth;
-let _prevH = window.innerHeight;
-
-// Detectar resize del viewport
-window.addEventListener('resize', () => {
-    const w = window.innerWidth;
-    const h = window.innerHeight;
-    const wDiff = _prevW - w;
-    const hDiff = _prevH - h;
-
-    // Viewport se achicó significativamente → DevTools se acopló
-    if (wDiff > 150 || hDiff > 150) {
-        _devtoolsWasDocked = true;
-    }
-    // Viewport volvió a crecer → DevTools se cerró (o se desacopló)
-    if (wDiff < -150 || hDiff < -150) {
-        _devtoolsWasDocked = false;
-    }
-
-    _prevW = w;
-    _prevH = h;
-});
-
-function _isDevtoolsLikelyOpen() {
-    if (document.hidden) return false;
-    if (document.hasFocus()) return false;
-    return _devtoolsWasDocked;
-}
-
-function _probeLoop() {
-    if (!_devtoolsWatcherStarted) return;
-
-    const likelyOpen = _isDevtoolsLikelyOpen();
-
-    if (likelyOpen) {
-        if (!_devtoolsIsOpen) {
-            _devtoolsIsOpen = true;
-            startAlarmSound();
-            startCountdown();
-            showInGameAlert();
-        }
-    } else {
-        if (_devtoolsIsOpen) {
-            _devtoolsIsOpen = false;
-            stopAlarmSound();
-            stopCountdown();
-            hideInGameAlert();
-        }
-    }
-
-    setTimeout(_probeLoop, 300);
-}
-
-function startDevtoolsWatcher() {
-    if (_devtoolsWatcherStarted) return;
-    _devtoolsWatcherStarted = true;
-    _probeLoop();
-}
-
-// Kill switch manual
-window.stopDevtoolsAlarm = function() {
-    _devtoolsIsOpen = false;
-    _devtoolsWasDocked = false;
-    stopAlarmSound();
-    stopCountdown();
-    hideInGameAlert();
-    console.log('%c[✓] Alarma detenida manualmente.', 'color:#00ff88;');
-};
-
-// Trigger manual (para test)
-window.triggerDevtoolsAlarm = function() {
-    _devtoolsIsOpen = true;
-    startAlarmSound();
-    startCountdown();
-    showInGameAlert();
-    console.log('%c[!] Alarma disparada manualmente.', 'color:#ff5555;');
-};
-// ============================================================
 // ALERTA EN EL JUEGO
 // ============================================================
 function showInGameAlert() {
@@ -779,14 +691,6 @@ function hideInGameAlert() {
         } catch(e) {}
     }, 15000);
 })();
-// ============================================================
-// ARRANCAR WATCHER
-// ============================================================
-if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', () => setTimeout(startDevtoolsWatcher, 1000));
-} else {
-    setTimeout(startDevtoolsWatcher, 1000);
-}
 
 // ============================================================
 // PRESERVAR FOCO DEL INPUT — el terminal nunca pierde el cursor
@@ -823,6 +727,37 @@ document.addEventListener('mousedown', (e) => {
     //    (no rompe clicks, solo evita que se desenfoque el input)
     e.preventDefault();
 }, true);  // capture: corre antes que cualquier otro handler
+// ============================================================
+// MOBILE — ajustar scroll cuando aparece el teclado virtual
+// ============================================================
+if ('visualViewport' in window) {
+    window.visualViewport.addEventListener('resize', () => {
+        // Solo reaccionar si el input del terminal está enfocado
+        if (document.activeElement !== input) return;
+
+        // Darle un frame al layout para que se estabilice
+        requestAnimationFrame(() => {
+            // Scrollear al final del output para que se vea el prompt
+            if (typeof output !== 'undefined' && output) {
+                output.scrollTop = output.scrollHeight;
+            }
+            // Y asegurar que la línea de input quede visible
+            if (typeof input !== 'undefined' && input && input.scrollIntoView) {
+                input.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+            }
+        });
+    }, { passive: true });
+}
+
+// ============================================================
+// MOBILE — feedback háptico en acciones clave (opcional, Android)
+// ============================================================
+function haptic(ms) {
+    if (!navigator.vibrate) return;
+    if (!window.matchMedia('(pointer: coarse)').matches) return;
+    try { navigator.vibrate(ms); } catch(e) {}
+}
+window.haptic = haptic;
 // ============================================================
 // NOTIFICACIÓN DE ACTUALIZACIÓN
 // ============================================================

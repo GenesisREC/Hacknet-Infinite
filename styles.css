@@ -2766,3 +2766,289 @@ body.ui-fade-in .right-panel { animation-delay: 0.18s; }
     color: #0a1218;
     box-shadow: 0 0 18px rgba(68,221,255,0.7);
 }
+/* ============================================================
+   MOBILE / TABLET — responsive
+   ============================================================ */
+
+/* Altura dinámica: se ajusta cuando aparece el teclado */
+body {
+    height: 100vh;
+    height: 100dvh;
+overscroll-behavior: none;
+    touch-action: manipulation; /* desactiva double-tap zoom */
+}
+
+@media (max-width: 900px), (pointer: coarse) {
+
+    /* Layout apilado: terminal arriba, panel derecho abajo */
+    .main-content {
+        flex-direction: column;
+    }
+
+    .center-panel {
+        flex: 1 1 auto;
+        min-height: 0;
+        padding: 12px 14px;
+    }
+
+    .right-panel {
+        width: 100%;
+        max-height: 42dvh;
+        border-left: none;
+        border-top: 1px solid #0f0;
+        padding: 10px 14px;
+        overflow-y: auto;
+    }
+
+    /* Top-bar compacta */
+    .top-bar {
+        padding: 6px 12px;
+        font-size: 0.78rem;
+        min-height: 38px;
+        gap: 8px;
+        flex-wrap: nowrap;
+        overflow-x: auto;
+    }
+    .top-bar > span,
+    .top-bar > button {
+        flex-shrink: 0;
+    }
+    .hud-manual-btn,
+    .hud-update-badge {
+        padding: 4px 10px;
+        font-size: 0.72rem;
+    }
+
+    /* Terminal: tipografía un toque más chica */
+    #terminal-output {
+        font-size: 0.88rem;
+        line-height: 1.45;
+        padding-right: 4px;
+    }
+    #prompt-symbol,
+    #terminal-input {
+        font-size: 0.92rem;
+    }
+
+    /* Input: 16px evita el auto-zoom de iOS al enfocar */
+    #terminal-input {
+        font-size: 16px;
+    }
+    #prompt-symbol { font-size: 14px; }
+
+    /* Sugerencias: touch targets más grandes */
+    .suggestion-item {
+        padding: 12px 14px;
+        font-size: 0.95rem;
+    }
+    #suggestion-box {
+        max-height: 40dvh;
+    }
+
+    /* Procesos: cards un poco más compactas */
+    .process-card {
+        font-size: 0.76rem;
+    }
+    .proc-kill {
+        padding: 4px 8px;
+        font-size: 0.75rem;
+    }
+    .proc-page-btn {
+        padding: 6px 14px;
+    }
+
+    /* Canvases de los crackers: los achicamos al contenedor */
+    .sql-canvas, .ssh-canvas, .http-canvas, .ftp-canvas,
+    .smtp-canvas, .telnet-canvas {
+        max-width: 100%;
+        height: auto;
+    }
+
+    /* NetMap y wallbreaker: ocupan todo el ancho disponible */
+    #netmap-canvas,
+    #wallbreaker-canvas {
+        max-width: 100%;
+        height: auto;
+    }
+
+    /* Overlays: en mobile, ocupar toda la pantalla sin bordes */
+    #connect-overlay .connect-window {
+        width: 100vw;
+        height: 100dvh;
+        max-width: none;
+    }
+    #connect-overlay .connect-body {
+        flex-direction: column;
+        overflow-y: auto;
+        flex: 1;
+    }
+    #connect-overlay .connect-info-panel,
+    #connect-overlay .connect-form-panel,
+    #connect-overlay #connect-key-card {
+        flex: 0 0 auto;
+        width: 100%;
+        min-width: 0;
+    }
+    #connect-overlay #connect-key-card {
+        margin-top: 8px;
+    }
+
+    /* Formularios (market/hacknet/gomail): stack vertical */
+    #market-form-overlay .form-wrapper,
+    #hacknet-form-overlay .form-wrapper,
+    #gomail-form-overlay .form-wrapper {
+        flex-direction: column;
+        gap: 20px;
+        width: 100%;
+        padding: 0 16px;
+        box-sizing: border-box;
+    }
+    #market-form-overlay .form-container,
+    #hacknet-form-overlay .form-container,
+    #gomail-form-overlay .form-container {
+        width: 100%;
+        max-width: 380px;
+    }
+    #saved-key-card,
+    #hacknet-saved-key-card,
+    #gomail-saved-key-card {
+        width: 100%;
+        max-width: 380px;
+    }
+
+    /* Webmail: márgenes más chicos */
+    .webmail-content { padding: 14px 16px; }
+    .webmail-row { padding: 10px 12px; }
+
+    /* Market: grilla a 1 columna */
+    .market-upgrade-grid {
+        grid-template-columns: 1fr;
+    }
+    .market-content { padding: 16px 18px; }
+
+    /* News: padding más chico */
+    .news-content { padding: 18px 16px; }
+    .news-hero { padding: 18px 20px; }
+    .news-hero-title { font-size: 1.4rem; }
+    .news-item { padding: 12px 14px; gap: 12px; }
+    .news-item-time { min-width: 70px; font-size: 0.72rem; }
+
+    /* Book/tutorial: media query para achicar el libro */
+    .tutorial-wrapper {
+        width: 100vw;
+        height: 100dvh;
+        padding: 8px;
+    }
+    .book-page {
+        padding: 20px 18px 40px 18px;
+        font-size: 13.5px;
+    }
+    .book-cover-title { font-size: 2rem; letter-spacing: 5px; }
+    .tutorial-footer { padding: 0 8px; }
+    .tut-nav-btn {
+        padding: 8px 14px;
+        font-size: 0.82rem;
+        min-width: 120px;
+    }
+
+    /* Setup: inputs full width */
+    #setup-overlay .setup-box {
+        min-width: 0;
+        width: 92vw;
+        max-width: 420px;
+        padding: 20px 22px;
+    }
+    #setup-overlay .setup-title { font-size: 1.6rem; letter-spacing: 2px; }
+
+    /* Last chance bar: compacta */
+    #lastchance-bar { padding: 0 10px; gap: 8px; height: 34px; }
+    .lc-label { font-size: 0.72rem; letter-spacing: 1px; }
+    .lc-time { font-size: 0.92rem; min-width: 40px; }
+
+    /* Update toast: full width en mobile */
+    #update-toast {
+        right: 8px;
+        left: 8px;
+        bottom: 8px;
+        width: auto;
+    }
+
+    /* Migration: stack vertical */
+    #migration-overlay .migration-columns {
+        flex-direction: column;
+    }
+    #migration-overlay .migration-btn {
+        width: 100%;
+        max-width: 320px;
+    }
+}
+
+/* Pantallas muy chicas (iPhone SE, etc.) */
+@media (max-width: 480px) {
+    .right-panel { max-height: 38dvh; }
+    #terminal-output { font-size: 0.84rem; }
+    .top-bar { font-size: 0.72rem; }
+    .hud-manual-btn { padding: 3px 8px; font-size: 0.68rem; }
+}
+/* ============================================================
+   TOUCH — desactivar hover "pegajoso"
+   ============================================================ */
+@media (hover: none) {
+    .suggestion-item:hover {
+        background: transparent;
+        color: #0f0;
+    }
+    .suggestion-item.cred-suggestion:hover {
+        background: transparent;
+        color: #ffcc00;
+    }
+    .suggestion-item:hover .cred-tag,
+    .suggestion-item.cred-suggestion:hover .cred-tag { color: #997a00; }
+
+    .proc-kill:hover { background: transparent; color: #ff3333; }
+    .proc-page-btn:hover:not(:disabled) { background: #000; color: #0f0; }
+
+    .market-btn:hover,
+    .market-btn-sell:hover,
+    .market-btn-buy:hover,
+    .market-btn-logout:hover,
+    .news-btn:hover,
+    .news-btn-logout:hover,
+    .webmail-btn:hover,
+    .webmail-btn.webmail-logout:hover { background: transparent; }
+
+    .hud-manual-btn:hover {
+        background: transparent;
+        color: #33ff33;
+        box-shadow: none;
+    }
+    .hud-update-badge:hover {
+        background: transparent;
+        color: #44ddff;
+        box-shadow: none;
+    }
+
+    .connect-btn:hover,
+    .connect-terminal-btn:hover,
+    .form-btn:hover { background: transparent; }
+
+    .tut-nav-btn:hover:not(:disabled) {
+        background: transparent;
+        color: #ffd88a;
+        box-shadow: none;
+    }
+    .tutorial-close:hover { background: transparent; color: #ffd88a; }
+
+    .pc-power-btn:hover,
+    .pc-power-btn:focus-visible {
+        transform: none;
+        border-color: #8b1a1a;
+        color: #8b1a1a;
+        background: radial-gradient(circle at 32% 28%, #3a0a0a 0%, #180404 55%, #050101 100%);
+    }
+    .pc-power-btn:hover .pc-power-icon { filter: drop-shadow(0 0 8px currentColor) drop-shadow(0 0 18px currentColor); }
+
+    .wt-btn:hover { background: #000; transform: none; }
+    .migration-btn-primary:hover { background: transparent; color: #33ff33; }
+    .migration-btn-secondary:hover { background: transparent; color: #ff5555; }
+}
