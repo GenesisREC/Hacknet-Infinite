@@ -6,6 +6,40 @@
 // UPDATES — changelog manual
 // ============================================================
 const NEWS_UPDATES = [
+        {
+        version: 'v1.9.1',
+        date: '2026-09-24',
+        title: 'Balance de progresión: el avance ahora se siente',
+        body: [
+            { text: 'Rebalanceo completo de los 9 tiers de servidores. Ahora cada tier es 100% rompible desde el inicio y ~66% al entrar al siguiente.', tag: 'bal' },
+            { text: 'El tier "Iniciado" ya no genera puertos por encima del nivel del jugador. Antes ~29% de los servers iniciales eran in-hackeables con los crackers base.', tag: 'bal' },
+            { text: 'Los tiers superiores comienzan en el nivel exacto donde el jugador acaba el tier anterior. La progresión es continua en lugar de tener saltos.', tag: 'bal' },
+            { text: 'Las misiones de HackNet ahora garantizan siempre al menos la cantidad de puertos rompibles necesarios para completarlas.', tag: 'fix' },
+            { text: 'Algunos puertos de las misiones siguen siendo in-hackeables a propósito, para mantener la sensación de dificultad.', tag: 'bal' },
+            { text: 'Conseguir crackers sigue siendo difícil fuera de las misiones: la fuente principal son los contratos de HackNet y las recompensas de misiones.', tag: 'bal' },
+            { text: 'Ahora pasar de un tier a otro requiere unas pocas misiones y se nota el cambio de inmediato al ver servidores nuevos con más servicios.', tag: 'bal' }
+        ]
+    },
+        {
+        version: 'v1.9.0',
+        date: '2026-09-23',
+        title: 'Tutorial interactivo, NetMap más legible y probe.com sin firewall',
+        body: [
+            { text: 'Nuevo tutorial interactivo paso a paso: te guía por tu primer hackeo completo, desde abrir el NetMap hasta vender en el mercado.', tag: 'new' },
+            { text: 'El tutorial vive en HELP.exe, un archivo que está en /home/user/documentos/. Se abre con "run HELP.exe" y se borra con "rm HELP.exe" para cerrarlo definitivamente.', tag: 'new' },
+            { text: 'Al terminar el setup, ahora podés elegir entre "Tutorial Interactivo" o "Modo Experto". La elección no se puede cambiar sin reiniciar la partida.', tag: 'new' },
+            { text: 'El tutorial incluye introducciones a GoMail, HackNet, InfoMarket y News.com sin forzarte a entrar en medio del tutorial.', tag: 'new' },
+            { text: 'El panel derecho ahora usa pestañas: HELP.exe y Procesos Activos conviven sin pisarse cuando el manual está abierto.', tag: 'new' },
+            { text: 'El servidor de pruebas (probe.com) ya no tiene firewall ni rastreo. Es un entorno libre para practicar con cualquier herramienta.', tag: 'fix' },
+            { text: 'Los números y etiquetas del NetMap ahora escalan al hacer zoom, manteniéndose legibles en cualquier nivel.', tag: 'fix' },
+            { text: 'El NetMap ahora se puede arrastrar y hacer zoom con gestos táctiles: un dedo para mover, dos dedos para pellizcar.', tag: 'new' },
+            { text: 'El juego es jugable en celulares y tablets: layout adaptado a pantallas verticales, controles táctiles y viewport optimizado.', tag: 'new' },
+            { text: 'Los efectos :hover ya no se quedan "pegados" después de un tap en dispositivos táctiles.', tag: 'fix' },
+            { text: 'Cuando aparece el teclado virtual, la terminal se scrollea automáticamente para que el prompt no quede tapado.', tag: 'fix' },
+            { text: 'Se eliminó el detector de DevTools: disparaba falsos positivos al abrir el teclado en mobile, rotar la pantalla o cambiar de app.', tag: 'fix' },
+            { text: 'Los pasos del tutorial que requieren escribir comandos incluyen un botón USAR que los completa en la terminal, ideal para mobile.', tag: 'new' }
+        ]
+    },
 {
         version: 'v1.8.0',
         date: '2026-09-22',
