@@ -220,6 +220,38 @@ function startScannerSound() {
         scannerOsc.start(); scannerLFO.start(); scannerSubOsc.start();
     } catch(e) {}
 }
+
+function stopScannerSound() {
+    if (!audioCtx) return;
+    const t = audioCtx.currentTime;
+    try {
+        if (scannerGain) { scannerGain.gain.cancelScheduledValues(t); scannerGain.gain.setValueAtTime(scannerGain.gain.value, t); scannerGain.gain.linearRampToValueAtTime(0.0001, t + 0.25); }
+        if (scannerSubGain) { scannerSubGain.gain.cancelScheduledValues(t); scannerSubGain.gain.setValueAtTime(scannerSubGain.gain.value, t); scannerSubGain.gain.linearRampToValueAtTime(0.0001, t + 0.25); }
+    } catch(e) {}
+    const oscRef = scannerOsc, lfoRef = scannerLFO, subRef = scannerSubOsc;
+    scannerOsc = null; scannerLFO = null; scannerSubOsc = null;
+    scannerGain = null; scannerLFOGain = null; scannerSubGain = null;
+    setTimeout(() => {
+        try { if (oscRef) oscRef.stop(); } catch(e) {}
+        try { if (lfoRef) lfoRef.stop(); } catch(e) {}
+        try { if (subRef) subRef.stop(); } catch(e) {}
+    }, 320);
+}
+
+function soundSonarPing() {
+    if (!audioCtx) return;
+    try {
+        const osc = audioCtx.createOscillator(); const gain = audioCtx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(1600, audioCtx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(750, audioCtx.currentTime + 0.28);
+        gain.gain.setValueAtTime(0.065, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + 0.35);
+        osc.connect(gain); gain.connect(audioCtx.destination);
+        osc.start(); osc.stop(audioCtx.currentTime + 0.4);
+    } catch(e) {}
+}
+
 function soundScanComplete() {
     if (!audioCtx) return;
     [523, 659, 880].forEach((f, i) => {
@@ -236,34 +268,7 @@ function soundScanComplete() {
     });
     haptic([60, 30, 60]);
 }
-function playTracePip() {
-    if (!audioCtx) return;
-    try {
-        const t = audioCtx.currentTime;
-        const osc = audioCtx.createOscillator(); const g = audioCtx.createGain();
-        osc.type = 'square'; osc.frequency.setValueAtTime(1400, t);
-        g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(0.06, t + 0.004);
-        g.gain.exponentialRampToValueAtTime(0.0001, t + 0.09);
-        osc.connect(g); g.connect(audioCtx.destination);
-        osc.start(t); osc.stop(t + 0.1);
-    } catch(e) {}
-    haptic(20);
-}
-function soundScanComplete() {
-    if (!audioCtx) return;
-    [523, 659, 880].forEach((f, i) => {
-        try {
-            const osc = audioCtx.createOscillator(); const gain = audioCtx.createGain();
-            osc.type = 'sine'; osc.frequency.value = f;
-            const start = audioCtx.currentTime + i * 0.09;
-            gain.gain.setValueAtTime(0, start);
-            gain.gain.linearRampToValueAtTime(0.05, start + 0.02);
-            gain.gain.exponentialRampToValueAtTime(0.0001, start + 0.38);
-            osc.connect(gain); gain.connect(audioCtx.destination);
-            osc.start(start); osc.stop(start + 0.42);
-        } catch(e) {}
-    });
-}
+
 function playTraceHeartbeat() {
     if (!audioCtx) return;
     try {
@@ -278,6 +283,7 @@ function playTraceHeartbeat() {
         osc.start(t); osc.stop(t + 0.32);
     } catch(e) {}
 }
+
 function playTracePip() {
     if (!audioCtx) return;
     try {
@@ -289,7 +295,9 @@ function playTracePip() {
         osc.connect(g); g.connect(audioCtx.destination);
         osc.start(t); osc.stop(t + 0.1);
     } catch(e) {}
+    haptic(20);
 }
+
 function playTraceCriticalPip() {
     if (!audioCtx) return;
     try {
@@ -304,7 +312,6 @@ function playTraceCriticalPip() {
     } catch(e) {}
     haptic([40, 20, 40]);
 }
-
 // ============================================================
 // HELPERS DE PROGRESIÓN
 // ============================================================

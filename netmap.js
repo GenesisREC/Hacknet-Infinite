@@ -429,16 +429,19 @@ function handleNetmapClick(e) {
     const worldX = (clickX - W / 2) / netmapZoom + gameState.netmapCamX;
     const worldY = (clickY - H / 2) / netmapZoom + gameState.netmapCamY;
 
+    // En touch damos un poco más de margen porque el dedo es más impreciso
+    const isTouch = e.pointerType === 'touch' || e.pointerType === 'pen';
+    const hitR = isTouch ? 20 : 14;
+
     for (const node of gameState.netmapNodes) {
         if (!node.clickable) continue;
         const dx = worldX - node.x;
         const dy = worldY - node.y;
-        const hitR = 14;
         if (Math.abs(dx) < hitR && Math.abs(dy) < hitR) {
             if (node.isMarket) input.value = 'connect market.onion';
             else if (node.isGomail) input.value = 'connect gomail.com';
             else if (node.isHacknet) input.value = 'connect hacknet.onion';
-	    else if (node.isNews) input.value = 'connect news.com';
+            else if (node.isNews) input.value = 'connect news.com';
             else input.value = `connect ${node.ip}`;
             input.focus();
             setTimeout(() => input.setSelectionRange(input.value.length, input.value.length), 0);
@@ -447,43 +450,144 @@ function handleNetmapClick(e) {
     }
 }
 
-canvas.addEventListener('mousedown', (e) => {
+// ============================================================
+// NETMAP INPUT — Pointer Events (mouse + touch unificados)
+// ============================================================
+
+// Mapa de punteros activos: pointerId → { x, y, type }
+const netmapActivePointers = new Map();
+
+// Estado del pinch zoom
+let netmapPinchStartDist = 0;
+let netmapPinchStartZoom = 1;
+let netmapPinchMidX = 0;
+let netmapPinchMidY = 0;
+
+function netmapPointerDownHandler(e) {
     if (!gameState.netmapOpen || gameState.scanning) return;
-    if (e.button !== 0) return;
-    gameState.netmapDragging = true;
-    gameState.netmapDragStartX = e.clientX;
-    gameState.netmapDragStartY = e.clientY;
-    gameState.netmapDragCamStartX = gameState.netmapCamX;
-    gameState.netmapDragCamStartY = gameState.netmapCamY;
-    gameState.netmapDragMoved = false;
-    canvas.classList.add('dragging');
-});
+    // Solo botón principal para mouse
+    if (e.pointerType === 'mouse' && e.button !== 0) return;
 
-document.addEventListener('mousemove', (e) => {
-    if (!gameState.netmapDragging) return;
-    const rect = canvas.getBoundingClientRect();
-    const scaleX = canvas.width / rect.width;
-    const scaleY = canvas.height / rect.height;
-    const dx = (e.clientX - gameState.netmapDragStartX) * scaleX;
-    const dy = (e.clientY - gameState.netmapDragStartY) * scaleY;
-    if (Math.abs(dx) > 3 || Math.abs(dy) > 3) gameState.netmapDragMoved = true;
-    gameState.netmapCamX = gameState.netmapDragCamStartX - dx / netmapZoom;
-    gameState.netmapCamY = gameState.netmapDragCamStartY - dy / netmapZoom;
-    drawNetmap();
-});
+    try { canvas.setPointerCapture(e.pointerId); } catch (err) {}
 
-document.addEventListener('mouseup', () => {
-    if (!gameState.netmapDragging) return;
-    gameState.netmapDragging = false;
-    canvas.classList.remove('dragging');
-});
+    netmapActivePointers.set(e.pointerId, {
+        x: e.clientX,
+        y: e.clientY,
+        type: e.pointerType
+    });
 
-canvas.addEventListener('click', (e) => {
-    if (gameState.netmapDragMoved) { gameState.netmapDragMoved = false; return; }
-    handleNetmapClick(e);
-});
+    if (netmapActivePointers.size === 1) {
+        // Un solo dedo / mouse → modo drag
+        gameState.netmapDragging = true;
+        gameState.netmapDragStartX = e.clientX;
+        gameState.netmapDragStartY = e.clientY;
+        gameState.netmapDragCamStartX = gameState.netmapCamX;
+        gameState.netmapDragCamStartY = gameState.netmapCamY;
+        gameState.netmapDragMoved = false;
+        canvas.classList.add('dragging');
+    } else if (netmapActivePointers.size === 2) {
+        // Dos dedos → pinch zoom
+        gameState.netmapDragging = false;
+        canvas.classList.remove('dragging');
 
-canvas.addEventListener('wheel', (e) => {
+        const pts = [...netmapActivePointers.values()];
+        netmapPinchStartDist = Math.hypot(pts[0].x - pts[1].x, pts[0].y - pts[1].y);
+        netmapPinchStartZoom = netmapZoom;
+
+        // Coordenadas internas del canvas del punto medio del pinch
+        const rect = canvas.getBoundingClientRect();
+        const midClientX = (pts[0].x + pts[1].x) / 2;
+        const midClientY = (pts[0].y + pts[1].y) / 2;
+        netmapPinchMidX = (midClientX - rect.left) * (canvas.width / rect.width);
+        netmapPinchMidY = (midClientY - rect.top) * (canvas.height / rect.height);
+    }
+}
+
+function netmapPointerMoveHandler(e) {
+    if (!gameState.netmapOpen) return;
+    if (!netmapActivePointers.has(e.pointerId)) return;
+
+    netmapActivePointers.set(e.pointerId, {
+        x: e.clientX,
+        y: e.clientY,
+        type: e.pointerType
+    });
+
+    if (netmapActivePointers.size === 1 && gameState.netmapDragging) {
+        // Drag con un dedo
+        const rect = canvas.getBoundingClientRect();
+        const scaleX = canvas.width / rect.width;
+        const scaleY = canvas.height / rect.height;
+        const dx = (e.clientX - gameState.netmapDragStartX) * scaleX;
+        const dy = (e.clientY - gameState.netmapDragStartY) * scaleY;
+        if (Math.abs(dx) > 3 || Math.abs(dy) > 3) gameState.netmapDragMoved = true;
+        gameState.netmapCamX = gameState.netmapDragCamStartX - dx / netmapZoom;
+        gameState.netmapCamY = gameState.netmapDragCamStartY - dy / netmapZoom;
+        drawNetmap();
+    } else if (netmapActivePointers.size === 2) {
+        // Pinch zoom
+        const pts = [...netmapActivePointers.values()];
+        const dist = Math.hypot(pts[0].x - pts[1].x, pts[0].y - pts[1].y);
+
+        if (netmapPinchStartDist > 0) {
+            const factor = dist / netmapPinchStartDist;
+            let newZoom = netmapPinchStartZoom * factor;
+            newZoom = Math.max(NETMAP_ZOOM_MIN, Math.min(NETMAP_ZOOM_MAX, newZoom));
+
+            const W = canvas.width, H = canvas.height;
+            const oldZoom = netmapZoom;
+
+            // Punto del mundo que estaba debajo del centro del pinch
+            const wx = (netmapPinchMidX - W / 2) / oldZoom + gameState.netmapCamX;
+            const wy = (netmapPinchMidY - H / 2) / oldZoom + gameState.netmapCamY;
+
+            // Re-anclar con el nuevo zoom para que no se escape
+            gameState.netmapCamX = wx - (netmapPinchMidX - W / 2) / newZoom;
+            gameState.netmapCamY = wy - (netmapPinchMidY - H / 2) / newZoom;
+            netmapZoom = newZoom;
+            drawNetmap();
+        }
+        gameState.netmapDragMoved = true;
+    }
+}
+
+function netmapPointerUpHandler(e) {
+    if (!gameState.netmapOpen) return;
+    const wasTracked = netmapActivePointers.has(e.pointerId);
+    netmapActivePointers.delete(e.pointerId);
+
+    try { canvas.releasePointerCapture(e.pointerId); } catch (err) {}
+
+    if (netmapActivePointers.size === 0) {
+        // Último dedo levantado
+        if (gameState.netmapDragging && !gameState.netmapDragMoved && wasTracked && !gameState.scanning) {
+            // Fue un tap limpio → click en nodo
+            handleNetmapClick(e);
+        }
+        gameState.netmapDragging = false;
+        canvas.classList.remove('dragging');
+    } else if (netmapActivePointers.size === 1) {
+        // Pasamos de pinch a drag con un dedo restante
+        const remaining = [...netmapActivePointers.values()][0];
+        gameState.netmapDragging = true;
+        gameState.netmapDragStartX = remaining.x;
+        gameState.netmapDragStartY = remaining.y;
+        gameState.netmapDragCamStartX = gameState.netmapCamX;
+        gameState.netmapDragCamStartY = gameState.netmapCamY;
+        // Ya hubo movimiento con el pinch: no cuenta como tap
+        gameState.netmapDragMoved = true;
+    }
+}
+
+function netmapPointerCancelHandler(e) {
+    netmapActivePointers.delete(e.pointerId);
+    if (netmapActivePointers.size === 0) {
+        gameState.netmapDragging = false;
+        canvas.classList.remove('dragging');
+    }
+}
+
+function netmapWheelHandler(e) {
     if (!gameState.netmapOpen) return;
     e.preventDefault();
     const rect = canvas.getBoundingClientRect();
@@ -501,31 +605,58 @@ canvas.addEventListener('wheel', (e) => {
     gameState.netmapCamY = wy - (my - H / 2) / newZoom;
     netmapZoom = newZoom;
     drawNetmap();
-}, { passive: false });
+}
 
-canvas.addEventListener('dblclick', (e) => {
+function netmapDblClickHandler(e) {
     if (!gameState.netmapOpen) return;
     e.preventDefault();
     netmapZoom = 1;
     gameState.netmapCamX = 0;
     gameState.netmapCamY = 0;
     drawNetmap();
-});
+}
+
+canvas.addEventListener('pointerdown',   netmapPointerDownHandler);
+canvas.addEventListener('pointermove',   netmapPointerMoveHandler);
+canvas.addEventListener('pointerup',     netmapPointerUpHandler);
+canvas.addEventListener('pointercancel', netmapPointerCancelHandler);
+canvas.addEventListener('wheel',         netmapWheelHandler, { passive: false });
+canvas.addEventListener('dblclick',      netmapDblClickHandler);
 
 function toggleNetmap() {
     if (gameState.isDeleting) return;
     if (gameState.netmapOpen) {
-        if (gameState.scanning) { output.innerHTML += `<span class="text-error">No puedes cerrar NetMap mientras escaneas.</span><br>`; output.scrollTop = output.scrollHeight; return; }
+        if (gameState.scanning) {
+            output.innerHTML += `<span class="text-error">No puedes cerrar NetMap mientras escaneas.</span><br>`;
+            output.scrollTop = output.scrollHeight;
+            return;
+        }
         gameState.netmapOpen = false;
+
+        // Limpiar estado de input táctil
+        netmapActivePointers.clear();
+        gameState.netmapDragging = false;
+        gameState.netmapDragMoved = false;
+        canvas.classList.remove('dragging');
+
         output.innerHTML += `<span class="text-warning">NetMap cerrado. RAM liberada.</span><br>`;
     } else {
-        if (gameState.ram + 0.5 > gameState.maxRam) { output.innerHTML += `<span class="text-error">Error: RAM insuficiente para abrir NetMap (requiere 0.5 GB).</span><br>`; return; }
+        if (gameState.ram + 0.5 > gameState.maxRam) {
+            output.innerHTML += `<span class="text-error">Error: RAM insuficiente para abrir NetMap (requiere 0.5 GB).</span><br>`;
+            return;
+        }
         gameState.netmapOpen = true;
         gameState.netmapCamX = 0;
         gameState.netmapCamY = 0;
         netmapZoom = 1;
+
+        // Reset input táctil
+        netmapActivePointers.clear();
+        gameState.netmapDragging = false;
+        gameState.netmapDragMoved = false;
+
         startNetmapAnim();
-        output.innerHTML += `<span class="text-success">NetMap abierto. Arrastra para mover · Rueda para zoom · Doble clic para resetear.</span><br>`;
+        output.innerHTML += `<span class="text-success">NetMap abierto. Arrastrá para mover · Pellizcá para zoom · Doble clic para resetear.</span><br>`;
     }
     output.scrollTop = output.scrollHeight;
     updateUI();
