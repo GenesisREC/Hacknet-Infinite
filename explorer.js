@@ -150,7 +150,6 @@ function renderExplorer() {
     dirs.forEach(d => {
         const count = (d.node.children || []).length;
         html += `<div class="explorer-item explorer-item-dir" data-path="${escapeAttr(d.path)}" data-type="dir">
-            <div class="explorer-item-icon">📁</div>
             <div class="explorer-item-info">
                 <div class="explorer-item-name">${escapeHtml(d.name)}</div>
                 <div class="explorer-item-meta">Carpeta · ${count} elemento${count === 1 ? '' : 's'}</div>
@@ -159,18 +158,22 @@ function renderExplorer() {
         </div>`;
     });
 
-    files.forEach(f => {
+            files.forEach(f => {
         const node = f.node;
-        let meta = '', icon = '📄', extraClass = '';
+        let meta = '', icon = '[F]', extraClass = '';
         if (node.isExecutable) {
             meta = `Ejecutable · v${(node.version || 1.0).toFixed(1)} · ${formatSize(node.size || 0)}`;
-            icon = '⚙'; extraClass = 'explorer-item-exe';
+            icon = '[*]'; extraClass = 'explorer-item-exe';
         } else if (node.isTraceLog) {
             meta = `Log de rastreo · ${formatSize(node.size || 0)}`;
-            icon = '⚠'; extraClass = 'explorer-item-trace';
+            icon = '[!]'; extraClass = 'explorer-item-trace';
         } else if (node.isProtectedZip) {
             meta = `ZIP protegido · ${formatSize(node.size || 0)}`;
-            icon = '🔒'; extraClass = 'explorer-item-zip';
+            icon = '[Z]'; extraClass = 'explorer-item-zip';
+        } else if (node.isOpenZip) {
+            const n = (node.zipContents || []).length;
+            meta = `ZIP · ${n} archivo${n === 1 ? '' : 's'} · ${formatSize(node.size || 0)}`;
+            icon = '[Z]'; extraClass = 'explorer-item-zip';
         } else {
             meta = `${formatSize(node.size || 0)}${node.category ? ' · ' + node.category : ''}`;
         }
@@ -230,8 +233,12 @@ function renderExplorerPreview(node, path) {
     let previewContent = '';
     let previewClass = '';
 
-    if (node.isProtectedZip) {
-        previewContent = 'ZIP protegido. Requiere contraseña.';
+        if (node.isProtectedZip) {
+        previewContent = 'ZIP protegido. Requiere contraseña.\n\nUsá: unzip ' + name + ' TU_CLAVE';
+        previewClass = 'explorer-preview-warn';
+    } else if (node.isOpenZip) {
+        const files = (node.zipContents || []).map(f => '  · ' + f.name + ' (' + formatSize(f.size) + ')').join('\n');
+        previewContent = 'ZIP sin contraseña. Contiene ' + (node.zipContents || []).length + ' archivo(s):\n\n' + files + '\n\nUsá: unzip ' + name;
         previewClass = 'explorer-preview-warn';
     } else if (node.isTraceLog) {
         previewContent = node.content || '(sin contenido)';

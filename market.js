@@ -172,7 +172,7 @@ function renderMarketWeb() {
     }
 
     html += `<div class="market-section">
-        <div class="market-section-title">📁 VENDER ARCHIVOS</div>`;
+        <div class="market-section-title">VENDER ARCHIVOS</div>`;
     if (sellableFiles.length === 0) {
         html += `<div class="market-empty">
             No tenés archivos vendibles en /download.
@@ -183,7 +183,6 @@ function renderMarketWeb() {
         sellableFiles.forEach(({ name, file, value }) => {
             const safeName = name.replace(/'/g, "\\'");
             html += `<div class="market-file-row">
-                <div class="market-file-icon">📄</div>
                 <div class="market-file-info">
                     <div class="market-file-name">${name}</div>
                     <div class="market-file-meta">${file.size.toFixed(1)} KB · ${file.category || 'archivo'}</div>
@@ -200,7 +199,7 @@ function renderMarketWeb() {
 
     // ==== MEJORAS DE HARDWARE ====
     html += `<div class="market-section">
-        <div class="market-section-title">⚙️ MEJORAS DE HARDWARE</div>
+        <div class="market-section-title">MEJORAS DE HARDWARE</div>
         <div class="market-upgrade-grid">`;
 
     // RAM
@@ -208,7 +207,6 @@ function renderMarketWeb() {
     if (nextRam) {
         const canAfford = balance >= nextRam.price;
         html += `<div class="market-upgrade-card">
-            <div class="market-upgrade-icon">🧠</div>
             <div class="market-upgrade-name">RAM</div>
             <div class="market-upgrade-current">Actual: ${gameState.maxRam.toFixed(1)} GB</div>
             <div class="market-upgrade-next">→ ${nextRam.ram.toFixed(1)} GB</div>
@@ -220,7 +218,6 @@ function renderMarketWeb() {
         </div>`;
     } else {
         html += `<div class="market-upgrade-card market-upgrade-maxed">
-            <div class="market-upgrade-icon">🧠</div>
             <div class="market-upgrade-name">RAM</div>
             <div class="market-upgrade-maxed-text">✓ MÁXIMO</div>
             <div class="market-upgrade-current">${gameState.maxRam.toFixed(1)} GB</div>
@@ -232,7 +229,6 @@ function renderMarketWeb() {
     if (nextCpu) {
         const canAfford = balance >= nextCpu.price;
         html += `<div class="market-upgrade-card">
-            <div class="market-upgrade-icon">⚡</div>
             <div class="market-upgrade-name">CPU</div>
             <div class="market-upgrade-current">Actual: ${gameState.hardware.cpu.label}</div>
             <div class="market-upgrade-next">→ ${nextCpu.label}</div>
@@ -244,7 +240,6 @@ function renderMarketWeb() {
         </div>`;
     } else {
         html += `<div class="market-upgrade-card market-upgrade-maxed">
-            <div class="market-upgrade-icon">⚡</div>
             <div class="market-upgrade-name">CPU</div>
             <div class="market-upgrade-maxed-text">✓ MÁXIMO</div>
             <div class="market-upgrade-current">${gameState.hardware.cpu.label}</div>
@@ -256,7 +251,6 @@ function renderMarketWeb() {
     if (nextAnt) {
         const canAfford = balance >= nextAnt.price;
         html += `<div class="market-upgrade-card">
-            <div class="market-upgrade-icon">📡</div>
             <div class="market-upgrade-name">ANTENA</div>
             <div class="market-upgrade-current">Actual: ${gameState.hardware.antenna.label}</div>
             <div class="market-upgrade-next">→ ${nextAnt.label}</div>
@@ -268,7 +262,6 @@ function renderMarketWeb() {
         </div>`;
     } else {
         html += `<div class="market-upgrade-card market-upgrade-maxed">
-            <div class="market-upgrade-icon">📡</div>
             <div class="market-upgrade-name">ANTENA</div>
             <div class="market-upgrade-maxed-text">✓ MÁXIMO</div>
             <div class="market-upgrade-current">${gameState.hardware.antenna.label}</div>
@@ -279,7 +272,7 @@ function renderMarketWeb() {
 
     // ==== PROGRAMAS ====
     html += `<div class="market-section">
-        <div class="market-section-title">💾 PROGRAMAS</div>
+        <div class="market-section-title">PROGRAMAS</div>
         <div class="market-empty">
             No hay programas disponibles por el momento.
             <br><span style="opacity:0.7; font-size:0.85em;">Los crackers se consiguen hackeando servers o completando misiones de HackNet.</span>

@@ -23,6 +23,24 @@ const _reviewsState = {
 };
 
 // ------------------------------------------------------------
+// GUARD — ¿el usuario sigue en la pestaña de reviews?
+// ------------------------------------------------------------
+// Evita que un fetch/acción asíncrona pinte contenido de reviews
+// cuando el usuario ya se fue a otra pestaña de news.com.
+function _canRenderReviews(content) {
+    // Si gameState no está definido (arranque raro), permitir
+    if (typeof gameState === 'undefined') return true;
+    // Si el usuario no está en news.com, no pintamos
+    if (!gameState.inNews) return false;
+    // Si está en news pero no en reviews, no pintamos
+    if (gameState.newsTab !== 'reviews') return false;
+    // Si el content ya no es el de news-web-content, no pintamos
+    const webContent = document.getElementById('news-web-content');
+    if (content && webContent && content !== webContent) return false;
+    return true;
+}
+
+// ------------------------------------------------------------
 // FETCH helper (con CORS-safe config)
 // ------------------------------------------------------------
 async function reviewsFetch(payload) {
@@ -30,8 +48,6 @@ async function reviewsFetch(payload) {
     if (!url || url.indexOf('PEGA_ACÁ') === 0) {
         throw new Error('Endpoint no configurado. Editá reviews.js.');
     }
-    // Usamos POST siempre: Apps Script lo maneja bien y evita problemas
-    // de CORS con GET. Content-Type como texto plano para evitar preflight.
     const resp = await fetch(url, {
         method: 'POST',
         mode: 'cors',
@@ -55,7 +71,6 @@ async function reviewsSubmit(category, author, text) {
         text: text
     });
     if (!result.ok) throw new Error(result.error || 'Error al enviar.');
-    // Forzar refresh la próxima vez que se abra la pestaña
     _reviewsState.lastFetch = 0;
     return result;
 }
@@ -80,7 +95,6 @@ async function reviewsDelete(id, password) {
         password: password
     });
     if (!result.ok) throw new Error(result.error || 'Error al borrar.');
-    // Quitar localmente para no esperar al refresh
     _reviewsState.reviews = _reviewsState.reviews.filter(r => r.id !== id);
     return result;
 }
@@ -99,22 +113,28 @@ async function renderReviewsTab(content) {
             _reviewsState.error = err.message || 'Error de conexión.';
         }
         _reviewsState.loading = false;
+
+        // GUARD: si el usuario cambió de tab/pestaña mientras cargaba,
+        // no pintamos el contenido de reviews encima.
+        if (!_canRenderReviews(content)) return;
     }
 
     renderReviewsFull(content);
 }
 
 function renderReviewsLoading(content) {
+    if (!content) return;
     content.innerHTML = `
         <div class="reviews-hero">
             <div class="reviews-hero-title">REVIEWS DE LA COMUNIDAD</div>
             <div class="reviews-hero-sub">Cargando...</div>
         </div>
-        <div class="reviews-empty">⏳ Cargando reviews...</div>
+        <div class="reviews-empty">Cargando reviews...</div>
     `;
 }
 
 function renderReviewsFull(content) {
+    if (!content) return;
     const reviews = _reviewsState.reviews || [];
     const bugCount = reviews.filter(r => r.category === 'bug').length;
     const sugCount = reviews.filter(r => r.category === 'sugerencia').length;
@@ -138,11 +158,11 @@ function renderReviewsFull(content) {
             <div class="reviews-form-radios">
                 <label class="reviews-radio">
                     <input type="radio" name="review-cat" value="sugerencia" checked>
-                    <span>💡 Sugerencia</span>
+                    <span>Sugerencia</span>
                 </label>
                 <label class="reviews-radio">
                     <input type="radio" name="review-cat" value="bug">
-                    <span>🐛 Bug</span>
+                    <span>Bug</span>
                 </label>
             </div>
         </div>
@@ -167,39 +187,37 @@ function renderReviewsFull(content) {
     // ---- CONTROLES ADMIN ----
     if (_reviewsState.isAdmin) {
         html += `<div class="reviews-admin-bar">
-            <span class="reviews-admin-badge">🔓 MODO ADMIN</span>
+            <span class="reviews-admin-badge">[ADMIN] MODO ADMIN</span>
             <span class="reviews-admin-info">Click en [X] para borrar una review</span>
             <button class="reviews-btn reviews-btn-admin-out" id="review-admin-logout">SALIR DE ADMIN</button>
         </div>`;
     } else {
         html += `<div class="reviews-admin-bar reviews-admin-bar-locked">
-            <button class="reviews-btn reviews-btn-admin-in" id="review-admin-login">🔒 LOGIN ADMIN</button>
+            <button class="reviews-btn reviews-btn-admin-in" id="review-admin-login">[ADMIN] LOGIN</button>
         </div>`;
     }
 
     // ---- LISTA ----
     if (_reviewsState.error) {
         html += `<div class="reviews-empty reviews-empty-error">
-            ⚠ ${_reviewsState.error}
+            [!] ${_reviewsState.error}
             <br><button class="reviews-btn" id="review-retry-btn" style="margin-top:12px;">REINTENTAR</button>
         </div>`;
     } else if (reviews.length === 0) {
         html += `<div class="reviews-empty">
-            <div class="reviews-empty-icon">📝</div>
             Todavía no hay reviews. ¡Sé el primero en mandar una!
         </div>`;
     } else {
         html += `<div class="reviews-list-header">
             <span>▸ ÚLTIMAS REVIEWS</span>
             <span class="reviews-list-stats">
-                💡 ${sugCount} · 🐛 ${bugCount}
+                SUG ${sugCount} · BUG ${bugCount}
             </span>
         </div>`;
         html += `<div class="reviews-list">`;
         reviews.forEach(r => {
             const isBug = r.category === 'bug';
             const catClass = isBug ? 'reviews-cat-bug' : 'reviews-cat-sug';
-            const catLabel = isBug ? '🐛 BUG' : '💡 SUGERENCIA';
             const catText = isBug ? 'BUG' : 'SUGERENCIA';
             const when = formatReviewsTime(r.timestamp);
             const safeAuthor = escapeHtml(r.author);
@@ -226,6 +244,8 @@ function renderReviewsFull(content) {
 // WIRE — listeners
 // ------------------------------------------------------------
 function wireReviewsUI(content) {
+    if (!content) return;
+
     // ---- Contador de caracteres ----
     const textEl = content.querySelector('#review-text');
     const countEl = content.querySelector('#review-char-count');
@@ -248,32 +268,37 @@ function wireReviewsUI(content) {
             const text = textEl ? textEl.value.trim() : '';
 
             if (text.length < 4) {
-                if (msgEl) { msgEl.textContent = '⚠ El mensaje es muy corto.'; msgEl.className = 'reviews-form-msg reviews-msg-error'; }
+                if (msgEl) { msgEl.textContent = '[!] El mensaje es muy corto.'; msgEl.className = 'reviews-form-msg reviews-msg-error'; }
                 return;
             }
 
             sendBtn.disabled = true;
-            sendBtn.textContent = '⏳ ENVIANDO...';
+            sendBtn.textContent = 'ENVIANDO...';
             if (msgEl) { msgEl.textContent = ''; msgEl.className = 'reviews-form-msg'; }
 
             try {
                 await reviewsSubmit(category, author, text);
-                if (textEl) textEl.value = '';
-                if (countEl) countEl.textContent = '0';
-                if (msgEl) {
-                    msgEl.textContent = '✓ ¡Gracias! Tu review fue enviada.';
-                    msgEl.className = 'reviews-form-msg reviews-msg-ok';
-                }
                 try { if (typeof soundSuccess === 'function') soundSuccess(); } catch (e) {}
                 // Refrescar lista
                 await reviewsList(true);
+
+                // GUARD: si el usuario se fue, no pintamos nada
+                if (!_canRenderReviews(content)) return;
+
+                if (textEl) textEl.value = '';
+                if (countEl) countEl.textContent = '0';
+                if (msgEl) {
+                    msgEl.textContent = '¡Gracias! Tu review fue enviada.';
+                    msgEl.className = 'reviews-form-msg reviews-msg-ok';
+                }
                 renderReviewsFull(content);
             } catch (err) {
+                try { if (typeof soundError === 'function') soundError(); } catch (e) {}
+                if (!_canRenderReviews(content)) return;
                 if (msgEl) {
-                    msgEl.textContent = '⚠ ' + (err.message || 'Error al enviar.');
+                    msgEl.textContent = '[!] ' + (err.message || 'Error al enviar.');
                     msgEl.className = 'reviews-form-msg reviews-msg-error';
                 }
-                try { if (typeof soundError === 'function') soundError(); } catch (e) {}
             } finally {
                 sendBtn.disabled = false;
                 sendBtn.textContent = '▸ ENVIAR REVIEW';
@@ -283,22 +308,19 @@ function wireReviewsUI(content) {
 
     // ---- Login admin ----
     const loginBtn = content.querySelector('#review-admin-login');
-    if (loginBtn) {
-        loginBtn.addEventListener('click', () => {
-            const pw = prompt('Contraseña de administrador:');
-            if (!pw) return;
-            // Guardamos en sessionStorage y probamos con un fetch de delete "seco"
-            // Más simple: probamos list con flag y si responde bien, hacemos un delete de prueba
-            // Alternativa: pedir la lista igual y guardar. El password solo se valida
-            // cuando el admin borra algo. Acá lo dejamos "optimista".
-            try {
-                sessionStorage.setItem(REVIEWS_CONFIG.adminStorageKey, pw);
-            } catch (e) {}
-            _reviewsState.isAdmin = true;
-            renderReviewsFull(content);
-            try { if (typeof soundSuccess === 'function') soundSuccess(); } catch (e) {}
-        });
-    }
+if (loginBtn) {
+    loginBtn.addEventListener('click', async () => {
+        const pw = await askAdminPassword(
+            'Ingresá la contraseña de administrador para moderar las reviews.',
+            'ACCESO ADMINISTRADOR'
+        );
+        if (!pw) return;
+        try { sessionStorage.setItem(REVIEWS_CONFIG.adminStorageKey, pw); } catch (e) {}
+        _reviewsState.isAdmin = true;
+        if (!_canRenderReviews(content)) return;
+        renderReviewsFull(content);
+    });
+}
 
     // ---- Logout admin ----
     const logoutBtn = content.querySelector('#review-admin-logout');
@@ -306,6 +328,7 @@ function wireReviewsUI(content) {
         logoutBtn.addEventListener('click', () => {
             try { sessionStorage.removeItem(REVIEWS_CONFIG.adminStorageKey); } catch (e) {}
             _reviewsState.isAdmin = false;
+            if (!_canRenderReviews(content)) return;
             renderReviewsFull(content);
         });
     }
@@ -313,30 +336,34 @@ function wireReviewsUI(content) {
     // ---- Borrar (solo admin) ----
     content.querySelectorAll('[data-del-id]').forEach(btn => {
         btn.addEventListener('click', async (e) => {
-            const id = btn.getAttribute('data-del-id');
-            if (!id) return;
-            if (!confirm('¿Borrar esta review?')) return;
+    const id = btn.getAttribute('data-del-id');
+    if (!id) return;
+    if (!confirm('¿Borrar esta review?')) return;
 
-            let pw = '';
-            try { pw = sessionStorage.getItem(REVIEWS_CONFIG.adminStorageKey) || ''; } catch (err) {}
+    let pw = '';
+    try { pw = sessionStorage.getItem(REVIEWS_CONFIG.adminStorageKey) || ''; } catch (err) {}
 
-            if (!pw) {
-                pw = prompt('Contraseña de administrador:');
-                if (!pw) return;
-                try { sessionStorage.setItem(REVIEWS_CONFIG.adminStorageKey, pw); } catch (err) {}
-            }
+    if (!pw) {
+        pw = await askAdminPassword(
+            'Ingresá la contraseña de administrador para borrar esta review.',
+            'CONFIRMAR BORRADO'
+        );
+        if (!pw) return;
+        try { sessionStorage.setItem(REVIEWS_CONFIG.adminStorageKey, pw); } catch (err) {}
+    }
 
             btn.disabled = true;
             btn.textContent = '...';
             try {
                 await reviewsDelete(id, pw);
-                renderReviewsFull(content);
                 try { if (typeof soundSuccess === 'function') soundSuccess(); } catch (e) {}
+                if (!_canRenderReviews(content)) return;
+                renderReviewsFull(content);
             } catch (err) {
                 alert('Error al borrar: ' + (err.message || 'desconocido'));
+                if (!_canRenderReviews(content)) return;
                 btn.disabled = false;
                 btn.textContent = '[X]';
-                // Si la contraseña era mala, limpiamos
                 if (String(err.message || '').toLowerCase().indexOf('contraseña') >= 0) {
                     try { sessionStorage.removeItem(REVIEWS_CONFIG.adminStorageKey); } catch (e) {}
                     _reviewsState.isAdmin = false;
@@ -361,9 +388,10 @@ function wireReviewsUI(content) {
         const savedPw = sessionStorage.getItem(REVIEWS_CONFIG.adminStorageKey);
         if (savedPw && !_reviewsState.isAdmin) {
             _reviewsState.isAdmin = true;
-            // No re-render acá: ya está en el DOM, solo activamos el flag
-            // Pero el botón [X] no se dibuja hasta re-render. Forzamos uno suave:
-            setTimeout(() => renderReviewsFull(content), 50);
+            setTimeout(() => {
+                if (!_canRenderReviews(content)) return;
+                renderReviewsFull(content);
+            }, 50);
         }
     } catch (e) {}
 }
@@ -381,7 +409,6 @@ function formatReviewsTime(ts) {
     if (hours < 24) return `hace ${hours} h`;
     const days = Math.floor(hours / 24);
     if (days < 30) return `hace ${days} d`;
-    // Fecha completa
     const d = new Date(ts);
     return `${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}/${d.getFullYear()}`;
 }
@@ -396,9 +423,91 @@ function escapeHtml(str) {
 }
 
 // ------------------------------------------------------------
+// MODAL CUSTOM — reemplazo de prompt() nativo
+// ------------------------------------------------------------
+// Devuelve una Promise<string|null>:
+//   - string con la contraseña si el usuario acepta
+//   - null si cancela / cierra / aprieta Escape
+function askAdminPassword(message, title) {
+    return new Promise((resolve) => {
+        const overlay = document.getElementById('admin-pw-overlay');
+        if (!overlay) { resolve(null); return; }
+
+        const descEl   = document.getElementById('admin-pw-desc');
+        const titleEl  = document.querySelector('.admin-pw-title');
+        const inputEl  = document.getElementById('admin-pw-input');
+        const errorEl  = document.getElementById('admin-pw-error');
+        const acceptBtn = document.getElementById('admin-pw-accept');
+        const cancelBtn = document.getElementById('admin-pw-cancel');
+        const closeBtn  = document.getElementById('admin-pw-close');
+        const backdrop  = overlay.querySelector('.admin-pw-backdrop');
+
+        // Configurar contenido
+        if (descEl)  descEl.textContent  = message || 'Ingresá la contraseña de administrador:';
+        if (titleEl) titleEl.textContent = title   || 'ACCESO ADMINISTRADOR';
+        if (inputEl) { inputEl.value = ''; inputEl.type = 'password'; }
+        if (errorEl) errorEl.textContent = '';
+
+        overlay.style.display = 'flex';
+
+        // Foco diferido para que el fade-in no lo corte
+        setTimeout(() => { if (inputEl) inputEl.focus(); }, 60);
+
+        function cleanup() {
+            overlay.style.display = 'none';
+            if (inputEl)  inputEl.removeEventListener('keydown', onInputKey);
+            if (acceptBtn) acceptBtn.removeEventListener('click', onAccept);
+            if (cancelBtn) cancelBtn.removeEventListener('click', onCancel);
+            if (closeBtn)  closeBtn.removeEventListener('click', onCancel);
+            if (backdrop)  backdrop.removeEventListener('click', onCancel);
+            document.removeEventListener('keydown', onDocKey);
+        }
+
+        function onAccept() {
+            const val = inputEl ? inputEl.value : '';
+            if (!val || !val.trim()) {
+                if (errorEl) errorEl.textContent = '[!] Ingresá una contraseña.';
+                if (inputEl) { inputEl.focus(); inputEl.select(); }
+                return;
+            }
+            try { if (typeof soundSuccess === 'function') soundSuccess(); } catch (e) {}
+            cleanup();
+            resolve(val);
+        }
+
+        function onCancel() {
+            try { if (typeof soundKeyClick === 'function') soundKeyClick(); } catch (e) {}
+            cleanup();
+            resolve(null);
+        }
+
+        function onInputKey(e) {
+            if (e.key === 'Enter') { e.preventDefault(); onAccept(); }
+            else if (e.key === 'Escape') { e.preventDefault(); onCancel(); }
+        }
+
+        function onDocKey(e) {
+            // Escape global por si el input pierde foco
+            if (e.key === 'Escape') {
+                e.preventDefault();
+                onCancel();
+            }
+        }
+
+        if (inputEl)  inputEl.addEventListener('keydown', onInputKey);
+        if (acceptBtn) acceptBtn.addEventListener('click', onAccept);
+        if (cancelBtn) cancelBtn.addEventListener('click', onCancel);
+        if (closeBtn)  closeBtn.addEventListener('click', onCancel);
+        if (backdrop)  backdrop.addEventListener('click', onCancel);
+        document.addEventListener('keydown', onDocKey);
+    });
+}
+
+// ------------------------------------------------------------
 // Exports
 // ------------------------------------------------------------
 window.renderReviewsTab = renderReviewsTab;
 window.reviewsSubmit = reviewsSubmit;
 window.reviewsList = reviewsList;
 window.reviewsDelete = reviewsDelete;
+window.askAdminPassword = askAdminPassword;

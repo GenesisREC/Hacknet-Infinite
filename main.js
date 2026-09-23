@@ -126,10 +126,17 @@ function getSuggestions(inputText) {
         }
     } else if (parts[0].toLowerCase() === 'wallbreaker' || parts[0].toLowerCase() === 'wb') {
         if (parts.length === 2) matches = ['analyze', 'table', 'signature', 'break', 'status', 'close'].filter(c => c.startsWith(currentPart.toLowerCase()));
-    } else if (['ls', 'cd', 'cat', 'rm'].includes(parts[0].toLowerCase())) {
+    } else if (['ls', 'cd', 'cat', 'rm', 'unzip'].includes(parts[0].toLowerCase())) {
         const fs = getCurrentFS();
         const dir = fs[getCurrentCWD()];
         if (dir && dir.children) matches = dir.children.filter(c => c.startsWith(currentPart));
+    } else if (parts[0].toLowerCase() === 'unzip') {
+        if (parts.length === 2) {
+            const fs = getCurrentFS();
+            const dir = fs[getCurrentCWD()];
+            if (dir && dir.children) matches = dir.children.filter(c => c.startsWith(currentPart));
+        }
+        // parts.length === 3 → es la contraseña, no sugerir nada
     } else if (parts[0].toLowerCase() === 'scp') {
         if (parts.length === 2) {
             const dir = remoteFS[remoteCWD];

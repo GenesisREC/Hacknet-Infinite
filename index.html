@@ -234,7 +234,7 @@
 <div id="connect-overlay">
     <div class="connect-window">
         <div class="connect-titlebar">
-            <span>◈ CONEXIÓN REMOTA :: <span id="connect-ip-display">0.0.0.0</span></span>
+            <span>CONEXIÓN REMOTA :: <span id="connect-ip-display">0.0.0.0</span></span>
             <span class="connect-close" onclick="cancelConnect()">[X]</span>
         </div>
         <div class="connect-body">
@@ -250,10 +250,9 @@
                 <input type="text" class="connect-field" id="connect-input-user" placeholder="Usuario" autocomplete="off" spellcheck="false">
                 <input type="password" class="connect-field" id="connect-input-pass" placeholder="Contraseña" autocomplete="off" spellcheck="false">
                 <div class="connect-error" id="connect-error"></div>
-                <button class="connect-btn" onclick="submitConnectForm()">🔑 Iniciar sesión</button>
+                <button class="connect-btn" onclick="submitConnectForm()">Iniciar sesión</button>
             </div>
             <div id="connect-key-card" onclick="loginWithConnectKey()">
-                <div class="key-icon">🔑 Key guardada</div>
                 <div class="key-info">
                     <span class="key-label">Usuario:</span> <span class="key-value" id="connect-key-user">-</span><br>
                     <span class="key-label">Password:</span> <span class="key-value" id="connect-key-pass">-</span>
@@ -296,11 +295,6 @@
 </div>
 
 <!-- ============================================================
-     DEVTOOLS ALARM OVERLAY (se inyecta por JS, pero por las dudas)
-     ============================================================ -->
-<!-- (la inyecta main.js dinámicamente) -->
-
-<!-- ============================================================
      TOP BAR
      ============================================================ -->
 <div class="top-bar">
@@ -317,7 +311,7 @@
     <div class="center-panel">
 <div id="explorer-panel" style="display:none;">
             <div class="explorer-header">
-                <div class="explorer-title">📁 EXPLORER</div>
+                <div class="explorer-title">EXPLORER</div>
                 <div class="explorer-path" id="explorer-path">/</div>
                 <button class="explorer-close" onclick="toggleExplorer()">[X]</button>
             </div>
@@ -442,6 +436,29 @@
     </div>
     <div class="update-toast-body" id="update-toast-body"></div>
     <button class="update-toast-cta" onclick="goToUpdatesFromToast()">▸ VER CAMBIOS</button>
+</div>
+<!-- ============================================================
+     ADMIN PASSWORD MODAL — reemplazo del prompt() nativo
+     ============================================================ -->
+<div id="admin-pw-overlay" style="display:none;">
+    <div class="admin-pw-backdrop"></div>
+    <div class="admin-pw-box">
+        <div class="admin-pw-header">
+            <span class="admin-pw-icon">[ADMIN]</span>
+            <span class="admin-pw-title">ACCESO ADMINISTRADOR</span>
+            <button class="admin-pw-close" id="admin-pw-close">[X]</button>
+        </div>
+        <div class="admin-pw-body">
+            <div class="admin-pw-desc" id="admin-pw-desc">Ingresá la contraseña de administrador:</div>
+            <input type="password" class="admin-pw-input" id="admin-pw-input"
+                   placeholder="Contraseña" autocomplete="off" spellcheck="false">
+            <div class="admin-pw-error" id="admin-pw-error"></div>
+        </div>
+        <div class="admin-pw-footer">
+            <button class="admin-pw-btn admin-pw-btn-cancel" id="admin-pw-cancel">CANCELAR</button>
+            <button class="admin-pw-btn admin-pw-btn-accept" id="admin-pw-accept">ACEPTAR</button>
+        </div>
+    </div>
 </div>
 <!-- ============================================================
      SCRIPTS — ORDEN IMPORTANTE

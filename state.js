@@ -1045,10 +1045,13 @@ function createProbeServer() {
         '/': { type: 'dir', children: ['bin', 'home', 'var', 'etc', 'tmp', 'opt'] },
         '/bin': { type: 'dir', children: binChildren },
         '/home': { type: 'dir', children: ['user'] },
-        '/home/user': { type: 'dir', children: ['Documentos', 'Descargas', 'Escritorio', 'notas.txt'] },
-        '/home/user/Documentos': { type: 'dir', children: ['agenda.txt', 'contactos.txt', 'informe_interno.txt'] },
-        '/home/user/Descargas': { type: 'dir', children: ['backup_privado.zip'] },
-        '/home/user/Escritorio': { type: 'dir', children: [] },
+        '/home/user': {
+            type: 'dir',
+            children: ['Documentos', 'Descargas', 'Escritorio', 'notas.txt', 'diario.txt']
+        },
+        '/home/user/Documentos': { type: 'dir', children: ['agenda.txt', 'contactos.txt'] },
+        '/home/user/Descargas': { type: 'dir', children: ['mi_backup.zip', 'backup_privado.zip'] },
+        '/home/user/Escritorio': { type: 'dir', children: ['pendientes.txt'] },
         '/var': { type: 'dir', children: ['log', 'lib', 'backups'] },
         '/var/log': { type: 'dir', children: ['syslog.txt', 'auth.log'] },
         '/var/lib': { type: 'dir', children: ['mysql'] },
@@ -1059,47 +1062,89 @@ function createProbeServer() {
         '/opt': { type: 'dir', children: [] }
     };
 
+    // ─────────── Archivos personales del jugador ───────────
     fs['/home/user/notas.txt'] = makeFile(
-`Notas personales:
-- Comprar café
-- Actualizar el servidor el viernes
-- Clave del backup: "r00t2024"  ← ¡No me olvidar!
-- Llamar al proveedor de internet`,
-        2, false, computeFileValue('basura', 2, 0), 'basura');
+`Mis notas:
 
-    fs['/var/lib/mysql/database.sql'] = makeFile(
-`-- Dump MySQL de pruebas
-CREATE TABLE usuarios (id INT, email VARCHAR(255), tarjeta VARCHAR(20));
-INSERT INTO usuarios VALUES (1, 'juan@test.com', '4532-****-****-1234');
-INSERT INTO usuarios VALUES (2, 'maria@test.com', '5412-****-****-0987');
--- 12,847 registros más...`,
-        18, false, computeFileValue('financiero', 18, 0), 'financiero');
+- Terminé de armar mi server hoy, quedó lindo.
+- Dejé dos backups en /home/user/Descargas:
+    · mi_backup.zip       → es común, se abre con "unzip mi_backup.zip"
+    · backup_privado.zip  → tiene contraseña: r00t2024
+- No me acuerdo de por qué puse ese nombre de clave.
+- Comprar café.
+- Acordarme de borrar este archivo antes de vender la PC.`,
+        2, false, computeFileValue('personal', 2, 0), 'personal');
 
-    fs['/home/user/Documentos/contactos.txt'] = makeFile(
-`AGENDA DE CONTACTOS DE PRUEBA
+    fs['/home/user/diario.txt'] = makeFile(
+`Diario - algunos días sueltos
 
-Juan García    - jgarcia@test.com  - +54 11 5555-1234
-María López    - mlopez@test.com   - +54 11 5555-5678`,
-        4, false, computeFileValue('personal', 4, 0), 'personal');
+Lunes:
+  Hoy configuré el server. Me costó pero quedó.
+  Todavía tengo que ordenar las carpetas.
+
+Martes:
+  Subí algunos archivos personales.
+  Dejé los backups en Descargas.
+
+Miércoles:
+  No hice nada. Estuvo bueno.
+
+Jueves:
+  Pienso en renombrar el server. "probe.com" suena raro.
+  Pero me gusta. Lo dejo.
+
+Viernes:
+  Fin de semana. Nos vemos el lunes.`,
+        3, false, computeFileValue('personal', 3, 0), 'personal');
 
     fs['/home/user/Documentos/agenda.txt'] = makeFile(
-`REUNIONES DE PRUEBA
+`Agenda:
 
-Lunes:      Test de integración
-Miércoles:  Revisión de backups`,
-        3, false, computeFileValue('corporativo', 3, 0), 'corporativo');
+  · Lunes 10:00 — reunión con el contador
+  · Martes 15:30 — dentista
+  · Jueves 18:00 — asado en lo de Martín
+  · Viernes — entregar el informe`,
+        2, false, computeFileValue('personal', 2, 0), 'personal');
 
-    fs['/home/user/Documentos/informe_interno.txt'] = makeFile(
-`INFORME INTERNO DE PRUEBA
+    fs['/home/user/Documentos/contactos.txt'] = makeFile(
+`MIS CONTACTOS
 
-Este servidor es de pruebas.`,
-        2, false, computeFileValue('corporativo', 2, 0), 'corporativo');
+Martín Gómez     - +54 11 5555-1234 - martin.gomez@mail.com
+Lucía Fernández  - +54 11 5555-5678 - lucia.f@mail.com
+Diego Romero     - +54 11 5555-9012 - diego.romero@mail.com
+(más contactos en el celular)`,
+        3, false, computeFileValue('personal', 3, 0), 'personal');
 
-    fs['/var/log/syslog.txt'] = makeFile(`[SYSLOG] Servidor de pruebas iniciado.`, 2, false, 0, 'basura');
-    fs['/var/log/auth.log'] = makeFile(`[AUTH] 3 intentos fallidos desde 185.220.101.5`, 3, false, 0, 'basura');
-    fs['/etc/hostname'] = makeFile('probe-server', 1, false, 0, 'basura');
-    fs['/etc/passwd'] = makeFile(`root:x:0:0:root:/root:/bin/bash\nprobe:x:1000:1000::/home/user:/bin/bash`, 2, false, 0, 'corporativo');
+    fs['/home/user/Escritorio/pendientes.txt'] = makeFile(
+`PENDIENTES
 
+  [x] Instalar el server
+  [x] Configurar la red
+  [ ] Cambiar la contraseña del backup
+  [ ] Hacer un segundo backup (por las dudas)
+  [ ] Aprender a usar el firewall
+  [ ] Esparcir menos
+  [ ] Comprar más café`,
+        2, false, computeFileValue('personal', 2, 0), 'personal');
+
+    // ─────────── ZIP normal (sin contraseña) ───────────
+    fs['/home/user/Descargas/mi_backup.zip'] = {
+        type: 'file',
+        content: null,
+        size: 22,
+        isOpenZip: true,
+        category: 'personal',
+        value: 0,
+        zipContents: [
+            { name: 'fotos_vacaciones.jpg', category: 'personal', size: 9, content: null },
+            { name: 'contactos_personales.txt', category: 'personal', size: 3,
+              content: `CONTACTOS PERSONALES\n\nMamá:    +54 11 5555-1234\nPapá:    +54 11 5555-5678\nHermana: +54 11 5555-9012\nTía:     +54 11 5555-3456` },
+            { name: 'lista_canciones.txt', category: 'personal', size: 2,
+              content: `Playlist favorita:\n1. esa que suena bien\n2. otra más\n3. una vieja\n4. la del verano` }
+        ]
+    };
+
+    // ─────────── ZIP con contraseña (r00t2024) ───────────
     fs['/home/user/Descargas/backup_privado.zip'] = {
         type: 'file',
         content: null,
@@ -1109,11 +1154,28 @@ Este servidor es de pruebas.`,
         category: 'financiero',
         value: 0,
         zipContents: [
-            { name: 'wallets.txt', category: 'financiero', size: 5, content: `BTC: bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh\nLlave privada: 5Kb8kLf9zgWQnogidDA76MzPL6TsZZY36hWXMssSzNydYXYB9KF` },
-            { name: 'tarjetas.csv', category: 'financiero', size: 8, content: `num_tarjeta,titular,venc,cvv\n4532-1234-5678-9012,Juan Pérez,12/25,123\n5412-8765-4321-0987,María López,08/26,456` },
-            { name: 'notas_privadas.txt', category: 'personal', size: 3, content: `Notas que nadie debería leer:\n- Recordar borrar esto antes de vender la PC` }
+            { name: 'wallets.txt', category: 'financiero', size: 5,
+              content: `BTC: bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh\nLlave privada: 5Kb8kLf9zgWQnogidDA76MzPL6TsZZY36hWXMssSzNydYXYB9KF` },
+            { name: 'tarjetas.csv', category: 'financiero', size: 8,
+              content: `num_tarjeta,titular,venc,cvv\n4532-1234-5678-9012,Juan Pérez,12/25,123\n5412-8765-4321-0987,María López,08/26,456` },
+            { name: 'notas_privadas.txt', category: 'personal', size: 3,
+              content: `Notas que nadie debería leer:\n- Recordar borrar esto antes de vender la PC` }
         ]
     };
+
+    // ─────────── Resto de archivos ───────────
+    fs['/var/lib/mysql/database.sql'] = makeFile(
+`-- Dump MySQL de pruebas
+CREATE TABLE usuarios (id INT, email VARCHAR(255), tarjeta VARCHAR(20));
+INSERT INTO usuarios VALUES (1, 'juan@test.com', '4532-****-****-1234');
+INSERT INTO usuarios VALUES (2, 'maria@test.com', '5412-****-****-0987');
+-- 12,847 registros más...`,
+        18, false, computeFileValue('financiero', 18, 0), 'financiero');
+
+    fs['/var/log/syslog.txt'] = makeFile(`[SYSLOG] Servidor iniciado. Uptime: 4 días.`, 2, false, 0, 'basura');
+    fs['/var/log/auth.log'] = makeFile(`[AUTH] 3 intentos fallidos desde 185.220.101.5`, 3, false, 0, 'basura');
+    fs['/etc/hostname'] = makeFile('probe-server', 1, false, 0, 'basura');
+    fs['/etc/passwd'] = makeFile(`root:x:0:0:root:/root:/bin/bash\nprobe:x:1000:1000::/home/user:/bin/bash`, 2, false, 0, 'corporativo');
 
     ALL_TOOL_NAMES.forEach(name => {
         if (name === 'wallbreaker.exe') return;
@@ -1167,7 +1229,6 @@ Este servidor es de pruebas.`,
         isProbeServer: true
     };
 }
-
 // ============================================================
 // GENERACIÓN DE RED
 // ============================================================

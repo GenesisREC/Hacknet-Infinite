@@ -580,15 +580,12 @@ async function launchUnzip(proc) {
                             ? 0
                             : computeFileValue(inner.category, inner.size,
                                 gameState.currentServer && cur.isRemote ? gameState.currentServer.tier : 0);
-                        fs[innerPath] = makeFile(inner.content, inner.size, false, val, inner.category);
+                                                fs[innerPath] = makeFile(inner.content, inner.size, false, val, inner.category);
                         if (cur.sourceServerIP) fs[innerPath].sourceServerIP = cur.sourceServerIP;
                         if (cur.sourceServerIdentity) fs[innerPath].sourceServerIdentity = cur.sourceServerIdentity;
                         if (!fs[cur.extractDirPath].children.includes(inner.name)) {
                             fs[cur.extractDirPath].children.push(inner.name);
                         }
-                        output.innerHTML += `<span class="text-sys">  → ${inner.name} <span class="text-muted">(${formatSize(inner.size)})</span></span><br>`;
-                        output.scrollTop = output.scrollHeight;
-                        soundSuccess();
                         extractedSoFar++;
                         cur.extractedCount = extractedSoFar;
                     }
@@ -616,7 +613,7 @@ async function launchUnzip(proc) {
 
         const fs = cur.isRemote ? remoteFS : localFS;
 
-        while (extractedSoFar < cur.zipContents.length) {
+                while (extractedSoFar < cur.zipContents.length) {
             const inner = cur.zipContents[extractedSoFar];
             const innerPath = cur.extractDirPath + '/' + inner.name;
             const val = cur.isDuplicateDownload
@@ -629,10 +626,8 @@ async function launchUnzip(proc) {
             if (!fs[cur.extractDirPath].children.includes(inner.name)) {
                 fs[cur.extractDirPath].children.push(inner.name);
             }
-            output.innerHTML += `<span class="text-sys">  → ${inner.name} <span class="text-muted">(${formatSize(inner.size)})</span></span><br>`;
             extractedSoFar++;
         }
-
         if (fs[cur.zipPath]) {
             delete fs[cur.zipPath];
             const zipDir = fs[cur.extractDirParent];
@@ -641,6 +636,7 @@ async function launchUnzip(proc) {
 
         output.innerHTML += `<span class="text-success">[✓] ${cur.totalFiles} archivos extraídos en ${cur.extractDirPath}</span><br>`;
         output.scrollTop = output.scrollHeight;
+        soundSuccess();
 
         cur.status = 'active';
         cur.resultMessage = 'Completado';

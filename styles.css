@@ -4397,3 +4397,167 @@ body.explorer-active .input-line {
     .explorer-preview-body { font-size: 0.72rem; padding: 8px 10px; }
     #terminal-header { font-size: 0.7rem; letter-spacing: 2px; padding: 4px 10px; }
 }
+/* ============================================================
+   ADMIN PASSWORD MODAL — reemplazo del prompt() nativo
+   ============================================================ */
+#admin-pw-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 9999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Consolas', 'Courier New', monospace;
+    animation: adminPwFadeIn 0.18s ease-out;
+}
+@keyframes adminPwFadeIn {
+    from { opacity: 0; }
+    to   { opacity: 1; }
+}
+
+.admin-pw-backdrop {
+    position: absolute;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.78);
+    backdrop-filter: blur(2px);
+}
+
+.admin-pw-box {
+    position: relative;
+    width: min(440px, calc(100vw - 32px));
+    background: #0a0e14;
+    border: 1px solid #44ddff;
+    border-left: 4px solid #44ddff;
+    box-shadow:
+        0 0 40px rgba(68, 221, 255, 0.35),
+        0 20px 60px rgba(0, 0, 0, 0.7),
+        inset 0 0 60px rgba(68, 221, 255, 0.03);
+    animation: adminPwSlideIn 0.22s cubic-bezier(0.2, 0.9, 0.3, 1.2);
+}
+@keyframes adminPwSlideIn {
+    from { opacity: 0; transform: translateY(-16px) scale(0.97); }
+    to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.admin-pw-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 16px;
+    background: rgba(68, 221, 255, 0.08);
+    border-bottom: 1px solid rgba(68, 221, 255, 0.35);
+    color: #44ddff;
+    font-size: 0.8rem;
+    font-weight: bold;
+    letter-spacing: 2px;
+}
+.admin-pw-icon {
+    color: #44ddff;
+    font-size: 0.72rem;
+    letter-spacing: 1px;
+    padding: 2px 6px;
+    border: 1px solid rgba(68, 221, 255, 0.5);
+    background: rgba(68, 221, 255, 0.08);
+}
+.admin-pw-title {
+    flex: 1;
+}
+.admin-pw-close {
+    background: transparent;
+    border: 1px solid rgba(68, 221, 255, 0.5);
+    color: #44ddff;
+    font-family: inherit;
+    font-size: 0.7rem;
+    padding: 2px 8px;
+    cursor: pointer;
+    transition: all 0.15s;
+}
+.admin-pw-close:hover {
+    background: #44ddff;
+    color: #0a0e14;
+}
+
+.admin-pw-body {
+    padding: 20px 22px 6px;
+}
+.admin-pw-desc {
+    color: #aab8c5;
+    font-size: 0.85rem;
+    line-height: 1.5;
+    margin-bottom: 12px;
+    letter-spacing: 0.5px;
+}
+.admin-pw-input {
+    width: 100%;
+    background: #000;
+    border: 1px solid rgba(68, 221, 255, 0.4);
+    color: #e8eef5;
+    font-family: inherit;
+    font-size: 0.95rem;
+    padding: 10px 12px;
+    outline: none;
+    box-sizing: border-box;
+    letter-spacing: 2px;
+    caret-color: #44ddff;
+    transition: border-color 0.15s, box-shadow 0.15s;
+}
+.admin-pw-input::placeholder {
+    color: #556677;
+    letter-spacing: 1px;
+}
+.admin-pw-input:focus {
+    border-color: #44ddff;
+    box-shadow: 0 0 12px rgba(68, 221, 255, 0.35);
+}
+.admin-pw-error {
+    color: #ff5577;
+    font-size: 0.78rem;
+    min-height: 18px;
+    margin-top: 8px;
+    letter-spacing: 0.5px;
+}
+
+.admin-pw-footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    padding: 14px 22px 18px;
+}
+.admin-pw-btn {
+    background: transparent;
+    font-family: inherit;
+    font-size: 0.82rem;
+    font-weight: bold;
+    letter-spacing: 2px;
+    padding: 9px 20px;
+    cursor: pointer;
+    transition: all 0.15s;
+    border: 1px solid;
+}
+.admin-pw-btn-cancel {
+    border-color: #8899aa;
+    color: #8899aa;
+}
+.admin-pw-btn-cancel:hover {
+    background: #8899aa;
+    color: #0a0e14;
+}
+.admin-pw-btn-accept {
+    border-color: #44ddff;
+    color: #44ddff;
+    box-shadow: 0 0 12px rgba(68, 221, 255, 0.25);
+}
+.admin-pw-btn-accept:hover {
+    background: #44ddff;
+    color: #0a0e14;
+    box-shadow: 0 0 22px rgba(68, 221, 255, 0.7);
+}
+
+/* Mobile */
+@media (max-width: 900px), (pointer: coarse) {
+    .admin-pw-box { width: calc(100vw - 24px); }
+    .admin-pw-body { padding: 16px 16px 4px; }
+    .admin-pw-footer { padding: 12px 16px 16px; }
+    .admin-pw-input { font-size: 16px; } /* evita auto-zoom iOS */
+    .admin-pw-btn { padding: 11px 18px; }
+}

@@ -21,7 +21,7 @@ const IT_STEPS = [
       hintText: 'No es obligatorio. Lo menciono para que sepas que existe.',
       waitForButton: true,
       buttonLabel: '▸ ENTENDIDO' },
-	
+
     { id: 'netmap_open',
       title: 'Paso 1 · Abrí el NetMap',
       body: 'El NetMap es tu mapa de la red. Ahí aparecen los servidores que vas descubriendo. Escribí el comando y apretá ENTER.',
@@ -123,15 +123,39 @@ const IT_STEPS = [
       check: () => !gameState.runningProcesses.some(p => p.isDownload) &&
                    localFS['/download'] && localFS['/download'].children.length > 0 },
 
+    // ---------- INTRO A LOS ZIP ----------
+    { id: 'unzip_intro',
+      title: 'Paso 14 · Los ZIP',
+      body: 'Algunos archivos son ZIPs: paquetes comprimidos que contienen varios archivos adentro. Hay dos tipos. Los normales se abren con "unzip archivo.zip". Los protegidos piden la clave: "unzip archivo.zip laClave". Este server de práctica (que en realidad simula ser tu propia PC) tiene uno de cada uno en /home/user/Descargas.',
+      hint: null,
+      hintText: 'Tip: en /home/user/notas.txt está anotada la clave del ZIP protegido.',
+      waitForButton: true,
+      buttonLabel: '▸ ENTENDIDO' },
+
+    { id: 'unzip_open',
+      title: 'Paso 15 · Abrí el ZIP normal',
+      body: 'Empecemos por el fácil. En Descargas tenés "mi_backup.zip", un ZIP sin contraseña. Corré unzip sobre él. Los archivos se van a extraer a una carpeta nueva con el mismo nombre del ZIP + "_extracted".',
+      hint: 'unzip /home/user/Descargas/mi_backup.zip',
+      hintText: 'Vas a ver una animación mientras se extrae. Después podés mirar el contenido con ls.',
+      check: () => InteractiveTutorial.executedCommands.has('unzip:mi_backup.zip') },
+
+    { id: 'unzip_protected',
+      title: 'Paso 16 · Abrí el ZIP con contraseña',
+      body: 'Ahora el protegido: "backup_privado.zip". Necesitás la clave. Está anotada en algún archivo de texto del server. Buscala, después corré unzip pasando la clave como segundo argumento.',
+      hint: 'unzip /home/user/Descargas/backup_privado.zip r00t2024',
+      hintText: 'La clave está en notas.txt. Si querés, primero leela con "cat /home/user/notas.txt".',
+      check: () => InteractiveTutorial.executedCommands.has('unzip:backup_privado.zip') },
+
+    // ---------- DESCONECTAR ----------
     { id: 'disconnect',
-      title: 'Paso 14 · Desconectate',
+      title: 'Paso 17 · Desconectate',
       body: 'Siempre desconectate cuando termines con un server. Si tiene rastreo activo, cada segundo cuenta. Ahora mismo no hay rastreo, pero es buena costumbre.',
       hint: 'disconnect', hintText: null,
       check: () => gameState.isConnected === false },
 
     // ---------- INTRO GOMAIL ----------
     { id: 'intro_gomail',
-      title: 'Paso 15 · Conocé GoMail',
+      title: 'Paso 18 · Conocé GoMail',
       body: 'GoMail es un correo ficticio. Ahí te van a llegar mensajes importantes: contratos aceptados de HackNet, datos de misiones, recordatorios. Se accede con "connect gomail.com". La primera vez tenés que crear una cuenta.',
       hint: null,
       hintText: 'No entres ahora — te explico el resto primero.',
@@ -140,7 +164,7 @@ const IT_STEPS = [
 
     // ---------- INTRO HACKNET ----------
     { id: 'intro_hacknet',
-      title: 'Paso 16 · Conocé HackNet',
+      title: 'Paso 19 · Conocé HackNet',
       body: 'HackNet es el tablón de contratos. Ahí otros hackers publican trabajos: extraer archivos específicos de una IP, hackear servidores puntuales, operaciones silenciosas. Pagan en créditos y a veces sueltan crackers. Para usarlo tenés que crear una cuenta en GoMail y vincularla desde "connect hacknet.onion".',
       hint: null,
       hintText: 'Las misiones son la mejor fuente de crackers y plata.',
@@ -149,7 +173,7 @@ const IT_STEPS = [
 
     // ---------- INTRO MARKET ----------
     { id: 'intro_market',
-      title: 'Paso 17 · Conocé el InfoMarket',
+      title: 'Paso 20 · Conocé el InfoMarket',
       body: 'El InfoMarket es el mercado negro. Ahí vendés los archivos que robás y comprás mejoras: más RAM para correr más crackers en paralelo, CPU más rápido para reducir tiempos, y antena con más rango para el NetMap. Se accede con "connect market.onion". Los archivos que bajás con scp van a la carpeta /download y desde ahí los vendés.',
       hint: null,
       hintText: 'Los archivos financieros pagan más que los personales. Los de basura casi no valen.',
@@ -158,7 +182,7 @@ const IT_STEPS = [
 
     // ---------- INTRO NEWS ----------
     { id: 'intro_news',
-      title: 'Paso 18 · Conocé News.com',
+      title: 'Paso 21 · Conocé News.com',
       body: 'News.com es el portal de noticias. Ahí aparecen titulares generados por tus acciones en la red: filtraciones, ataques, hackeos silenciosos. Todo lo que hacés queda registrado públicamente (con el nombre del server, no el tuyo). Además, en la pestaña UPDATES se publican las actualizaciones de un juego popular de la actualidad. Entrá con "connect news.com" cuando quieras.',
       hint: null,
       hintText: 'No hace falta que entres ahora. Es solo para que sepas que existe.',
@@ -168,7 +192,7 @@ const IT_STEPS = [
     // ---------- PASO FINAL: BORRAR HELP.exe ----------
     { id: 'rm_help',
       title: 'Paso final · Borrá el manual',
-      body: 'Ya sabés lo básico: escanear, conectar, romper puertos, bajar archivos, vender y a dónde ir para las misiones. Ahora borrá este manual. Está en /home/user/documentos/HELP.exe.',
+      body: 'Ya sabés lo básico: escanear, conectar, romper puertos, bajar archivos, descomprimir ZIPs, vender y a dónde ir para las misiones. Ahora borrá este manual. Está en /home/user/documentos/HELP.exe.',
       hint: 'rm /home/user/documentos/HELP.exe',
       hintText: 'También podés hacer "cd documentos" y después "rm HELP.exe". Al borrarlo, el tutorial termina definitivamente.',
       check: () => !localFS['/home/user/documentos/HELP.exe'] }
@@ -323,6 +347,10 @@ function InteractiveTutorialOnCommand(action, args, rawCmd) {
     InteractiveTutorial.executedCommands.add(action);
     if (action === 'run' && args && args[1]) {
         InteractiveTutorial.executedCommands.add('run:' + args[1]);
+    }
+    if (action === 'unzip' && args && args[1]) {
+        // Normalizamos el path: nos quedamos con el nombre del archivo
+        InteractiveTutorial.executedCommands.add('unzip:' + args[1].split('/').pop());
     }
     IT_CheckCurrentStep();
     IT_SaveState();

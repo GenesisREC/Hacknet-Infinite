@@ -1224,7 +1224,7 @@ if (typeof InteractiveTutorialOnCommand === 'function') {
     break;
 }
 
-        case 'ls': {
+                case 'ls': {
             const fsLs = getCurrentFS(), cwdLs = getCurrentCWD();
             let lsContent = `<div class="msg-box">`;
             if (fsLs[cwdLs] && fsLs[cwdLs].children) {
@@ -1233,12 +1233,24 @@ if (typeof InteractiveTutorialOnCommand === 'function') {
                     const childPath = cwdLs === '/' ? '/' + childName : cwdLs + '/' + childName;
                     const child = fsLs[childPath];
                     if (child && child.type === 'file') {
-                        const cc = child.isExecutable ? 'text-warning' : (child.isTraceLog ? 'text-error' : (child.isProtectedZip ? 'text-fire' : 'text-info'));
+                        const cc = child.isExecutable
+                            ? 'text-warning'
+                            : (child.isTraceLog
+                                ? 'text-error'
+                                : ((child.isProtectedZip || child.isOpenZip) ? 'text-fire' : 'text-info'));
                         let extra = '';
-                        if (child.isExecutable && child.version !== undefined) extra = ` <span class="text-success">v${child.version.toFixed(1)}</span>`;
-                        if (child.isProtectedZip) extra = ` <span class="text-error">[PROTEGIDO]</span>`;
+                        if (child.isExecutable && child.version !== undefined) {
+                            extra = ` <span class="text-success">v${child.version.toFixed(1)}</span>`;
+                        }
+                        if (child.isProtectedZip) {
+                            extra = ` <span class="text-error">[PROTEGIDO]</span>`;
+                        } else if (child.isOpenZip) {
+                            extra = ` <span class="text-warning">[ZIP]</span>`;
+                        }
                         lsContent += `<div><span class="${cc}">${childName}</span> <span class="text-muted">(${formatSize(child.size || 0)})</span>${extra}</div>`;
-                    } else lsContent += `<div><span class="text-warning">${childName}/</span></div>`;
+                    } else {
+                        lsContent += `<div><span class="text-warning">${childName}/</span></div>`;
+                    }
                 });
             }
             lsContent += `</div>`;
@@ -1277,15 +1289,19 @@ if (typeof InteractiveTutorialOnCommand === 'function') {
             break;
         }
 
-        case 'cat': {
+                case 'cat': {
             if (!args[1]) { output.innerHTML += `<span class="text-error">Especificá archivo.</span><br>`; break; }
             const filePathCat = resolvePath(args[1], getCurrentCWD());
             const fsCat = getCurrentFS();
             if (fsCat[filePathCat] && fsCat[filePathCat].type === 'file') {
                 const file = fsCat[filePathCat];
                 const fileName = filePathCat.substring(filePathCat.lastIndexOf('/') + 1);
+
                 if (file.isProtectedZip) {
                     output.innerHTML += `<div class="msg-box"><span class="text-muted">[${formatSize(file.size || 0)}]</span> <span class="text-fire">[zip protegido]</span><br><span class="text-warning">Requiere contraseña.</span></div>`;
+                } else if (file.isOpenZip) {
+                    const n = (file.zipContents || []).length;
+                    output.innerHTML += `<div class="msg-box"><span class="text-muted">[${formatSize(file.size || 0)}]</span> <span class="text-warning">[zip]</span><br><span class="text-success">Contiene ${n} archivo${n === 1 ? '' : 's'}.</span><br><span class="text-muted">Usá "unzip ${fileName}" para extraerlos.</span></div>`;
                 } else if (isBinaryFile(fileName)) {
                     const preview = generateBinaryPreview(fileName, file.size || 1);
                     output.innerHTML += `<div class="msg-box"><span class="text-muted">[${formatSize(file.size || 0)}]</span> <span class="text-warning">[binario]</span><br><pre style="color:#33ff33; font-size:0.72rem; margin:4px 0 0 0;">${preview}</pre></div>`;
@@ -1293,7 +1309,9 @@ if (typeof InteractiveTutorialOnCommand === 'function') {
                     const cc = file.isTraceLog ? 'text-error' : 'text-sys';
                     output.innerHTML += `<div class="msg-box"><span class="text-muted">[${formatSize(file.size || 0)}]</span><br><span class="${cc}">${file.content || ''}</span></div>`;
                 }
-            } else output.innerHTML += `<span class="text-error">cat: no existe: ${args[1]}</span><br>`;
+            } else {
+                output.innerHTML += `<span class="text-error">cat: no existe: ${args[1]}</span><br>`;
+            }
             break;
         }
 
@@ -1381,30 +1399,66 @@ if (typeof InteractiveTutorialOnCommand === 'function') {
             break;
         }
 
-                case 'unzip': {
-            if (!args[1]) { output.innerHTML += `<span class="text-error">Uso: unzip [archivo] [contraseña?]</span><br>`; break; }
+                        case 'unzip': {
+            if (!args[1]) {
+                output.innerHTML += `<span class="text-error">Uso: unzip [archivo] [contraseña?]</span><br>`;
+                break;
+            }
+
             const zipPath = resolvePath(args[1], getCurrentCWD());
             const fs = getCurrentFS();
             const zipFile = fs[zipPath];
-            if (!zipFile || zipFile.type !== 'file') { output.innerHTML += `<span class="text-error">unzip: no existe: ${args[1]}</span><br>`; break; }
-            if (!zipFile.isProtectedZip) { output.innerHTML += `<span class="text-error">unzip: no es zip protegido.</span><br>`; break; }
-            const pw = args[2];
-            if (pw === undefined) { output.innerHTML += `<span class="text-warning">Extrayendo ${args[1]}... ✗ El archivo está protegido.</span><br>`; break; }
-            if (pw !== zipFile.zipPassword) { output.innerHTML += `<span class="text-error">✗ Contraseña incorrecta.</span><br>`; break; }
-            if (gameState.runningProcesses.some(p => p.isUnzip && p.zipPath === zipPath && p.sourceServerIP === (gameState.currentIP || 'local'))) { output.innerHTML += `<span class="text-warning">Ya hay una descompresión en curso.</span><br>`; break; }
+
+            if (!zipFile || zipFile.type !== 'file') {
+                output.innerHTML += `<span class="text-error">unzip: no existe: ${args[1]}</span><br>`;
+                break;
+            }
+
+            const isProtectedZip = !!zipFile.isProtectedZip;
+            const isOpenZip      = !!zipFile.isOpenZip;
+
+            if (!isProtectedZip && !isOpenZip) {
+                output.innerHTML += `<span class="text-error">unzip: no es un archivo ZIP.</span><br>`;
+                break;
+            }
+
+            let pw = args[2] || null;
+
+            if (isProtectedZip) {
+                if (pw === null) {
+                    output.innerHTML += `<span class="text-warning">unzip: el archivo está protegido. Usá "unzip ${args[1]} TU_CLAVE".</span><br>`;
+                    break;
+                }
+                if (pw !== zipFile.zipPassword) {
+                    output.innerHTML += `<span class="text-error">✗ Contraseña incorrecta.</span><br>`;
+                    break;
+                }
+            }
+
+            if (gameState.runningProcesses.some(p => p.isUnzip && p.zipPath === zipPath && p.sourceServerIP === (gameState.currentIP || 'local'))) {
+                output.innerHTML += `<span class="text-warning">Ya hay una descompresión en curso.</span><br>`;
+                break;
+            }
+
             gameState.ram = calculateRamUsage();
             const sizeKB = zipFile.size || 1;
             const ramCost = getUnzipRAM(sizeKB);
-            if (gameState.ram + ramCost > gameState.maxRam) { output.innerHTML += `<span class="text-error">RAM insuficiente.</span><br>`; break; }
+            if (gameState.ram + ramCost > gameState.maxRam) {
+                output.innerHTML += `<span class="text-error">RAM insuficiente.</span><br>`;
+                break;
+            }
+
             const zipDirPath = zipPath.substring(0, zipPath.lastIndexOf('/')) || '/';
             const zipName = zipPath.substring(zipPath.lastIndexOf('/') + 1);
             const extractDirName = zipName.replace(/\.zip$/i, '') + '_extracted';
             const extractDirPath = zipDirPath === '/' ? '/' + extractDirName : zipDirPath + '/' + extractDirName;
             const zipContents = zipFile.zipContents || [];
             const durationMs = getUnzipDuration(sizeKB, zipContents.length);
+
             const sourceServerIdentity = gameState.currentServer
                 ? getServerIdentity(gameState.currentServer)
                 : (zipFile.sourceServerIdentity || null);
+
             const proc = {
                 id: 'unz_' + Date.now() + Math.floor(Math.random() * 1000),
                 toolName: 'unzip', isUnzip: true, status: 'hacking', progress: 0, ram: ramCost,
@@ -1419,12 +1473,16 @@ if (typeof InteractiveTutorialOnCommand === 'function') {
                 isDuplicateDownload: !!zipFile.isDuplicateDownload,
                 animatedElapsed: 0, startedAt: Date.now(), resultMessage: ''
             };
+
             gameState.runningProcesses.push(proc);
             currentProcessPage = gameState.runningProcesses.length - 1;
             lastProcessSignature = '__force__';
             updateUI();
-            output.innerHTML += `<span class="text-info">[📦] Extrayendo ${zipName} (${zipContents.length} archivos · ${ramCost.toFixed(2)} GB)</span><br>`;
+
+            const claveInfo = isProtectedZip ? ' · con clave' : '';
+            output.innerHTML += `<span class="text-info">[ZIP] Extrayendo ${zipName} (${zipContents.length} archivos${claveInfo} · ${ramCost.toFixed(2)} GB)</span><br>`;
             output.scrollTop = output.scrollHeight;
+
             launchUnzip(proc);
             break;
         }
@@ -1495,15 +1553,8 @@ if (typeof InteractiveTutorialOnCommand === 'function') {
             }
             output.scrollTop = output.scrollHeight;
             launchDownload(proc).then(() => {
-                autoAdvanceMissionsOnEvent({ type: 'download', fileName, tier: serverTierAtStart, serverIP: serverIPAtStart });
-                const sourceFile = remoteFS ? remoteFS[remoteFilePath] : null;
-                const cat = sourceFile && sourceFile.category ? sourceFile.category : null;
-                if (typeof newsOnFinancialLeak === 'function' && cat === 'financiero') {
-                    newsOnFinancialLeak(fileName, sourceServerRef);
-                } else if (typeof newsOnPersonalLeak === 'function' && cat === 'personal') {
-                    newsOnPersonalLeak(fileName, sourceServerRef);
-                }
-            });
+    autoAdvanceMissionsOnEvent({ type: 'download', fileName, tier: serverTierAtStart, serverIP: serverIPAtStart });
+});
             break;
         }
 

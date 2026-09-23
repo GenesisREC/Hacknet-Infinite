@@ -6,7 +6,7 @@
 // UPDATES — changelog manual
 // ============================================================
 const NEWS_UPDATES = [
-           {
+   {
         version: 'v1.9.1',
         date: '2026-09-24',
         title: 'Balance de progresión: el avance ahora se siente',

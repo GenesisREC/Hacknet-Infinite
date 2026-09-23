@@ -322,7 +322,7 @@ function submitConnectForm() {
     if (user === cred.user && pass === cred.pass) {
         gameState.isAuthenticated = true;
         server.savedCredentials = { user: cred.user, pass: cred.pass };
-        output.innerHTML += `<div class="msg-box"><span class="text-success">[✓] Autenticado como ${cred.user}@${server.ip}.</span><br><span class="text-muted">💾 Credenciales guardadas para futuras conexiones.</span></div>`;
+        output.innerHTML += `<div class="msg-box"><span class="text-success">[✓] Autenticado como ${cred.user}@${server.ip}.</span><br><span class="text-muted">Credenciales guardadas para futuras conexiones.</span></div>`;
         closeConnectOverlay(false);
         output.scrollTop = output.scrollHeight;
         saveGame();
@@ -636,7 +636,7 @@ function renderGomailWeb(view) {
         urlEl.textContent = 'https://gomail.com/inbox';
 
         const inbox = gameState.gomailInbox || [];
-        let html = `<div class="webmail-inbox-title">📥 Bandeja de entrada
+        let html = `<div class="webmail-inbox-title">Bandeja de entrada
             <span class="webmail-badge">${inbox.length} mensaje${inbox.length === 1 ? '' : 's'}</span>
         </div>`;
 
