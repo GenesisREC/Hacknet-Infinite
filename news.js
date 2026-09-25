@@ -6,6 +6,148 @@
 // UPDATES — changelog manual
 // ============================================================
 const NEWS_UPDATES = [
+    {
+        version: 'v1.9.2',
+        date: '2026-09-24',
+        title: 'Defensa brute force, sospecha del operador, webs procedurales y quality of life',
+        body: [
+            // ─── DEFENSA BRUTE FORCE (MINIJUEGO) ───
+            { text: 'Nuevo minijuego de defensa: si tu nivel de sospecha sube, un atacante intentará romper tu contraseña SSH en tiempo real. Tenés que cambiarla antes de que acierte.', tag: 'new' },
+            { text: 'El ataque se dispara automáticamente cada 30 segundos, con chance escalada según tu sospecha: 15% de probabilidad con sospecha baja, 25% al 100%.', tag: 'new' },
+            { text: 'Cinco rondas progresivas: cada una con menos tiempo, atacante más rápido y requisitos más estrictos para la nueva contraseña.', tag: 'new' },
+            { text: 'Ronda 1: 30 segundos, mín. 6 caracteres. Ronda 2: 22s, mín. 8 caracteres + 1 mayúscula. Ronda 3: 15s, + 1 número. Ronda 4: 11s, + 1 símbolo + sin palabras comunes. Ronda 5: 8s, mín. 10 caracteres, 2 mayúsculas, 2 minúsculas, 2 números, 1 símbolo y 2 vocales.', tag: 'new' },
+            { text: 'Nuevo sistema de letras prohibidas: cada ronda sortea letras del abecedario que no podés usar. Ronda 2 prohíbe 1 letra, ronda 3 prohíbe 2, ronda 4 prohíbe 3, ronda 5 prohíbe 4. Ejemplo: "Sin las letras: S · L · M · F".', tag: 'new' },
+            { text: 'Las letras prohibidas se sortean al azar en cada ronda y nunca son las que ya usaste en contraseñas anteriores, para que siempre haya forma de ganar.', tag: 'bal' },
+            { text: 'Nueva restricción: no podés repetir una contraseña que ya usaste en cualquier ronda anterior de la misma partida. Se valida en el propio checklist.', tag: 'new' },
+            { text: 'Cartel naranja pulsante sobre el input mostrando las letras prohibidas de la ronda actual.', tag: 'new' },
+            { text: 'Checklist dinámico: los requisitos cambian según la ronda y reflejan en vivo si la contraseña los cumple.', tag: 'new' },
+            { text: 'Barra de fuerza de contraseña: rojo = DÉBIL, amarillo = MEDIA, verde = FUERTE. Las contraseñas que contienen palabras comunes del diccionario del atacante reciben penalización.', tag: 'new' },
+
+            // ─── CONSECUENCIAS AL PERDER ───
+            { text: 'Cadena de castigo al perder el minijuego: si tenés créditos te roban el 25% (mín 3.000 CR, máx 25.000 CR). Si no tenés CR, te borran un cracker extra (no los 3 iniciales).', tag: 'new' },
+            { text: 'Si perdés sin créditos y solo tenés los 3 crackers iniciales, entrás automáticamente al modo Última Oportunidad.', tag: 'new' },
+            { text: 'Al ganar el minijuego (sobrevivir 5 rondas) no perdés nada y el atacante desiste.', tag: 'new' },
+            { text: 'Al ganar el lastchance, tu nivel de sospecha se resetea a 0 y la barra de News vuelve a verde.', tag: 'new' },
+
+            // ─── EMAILS DEL HACKER ───
+            { text: 'Si perdés el minijuego, el hacker te envía un email burlón a GoMail. Hay 7 plantillas distintas con tono variable: burlón, amenazante, decepcionado, cordial.', tag: 'new' },
+            { text: 'Los emails llegan desde direcciones variadas (@darkweb.onion, @cyber-threat.io) y mencionan tu nombre de usuario, el monto robado o el cracker borrado.', tag: 'new' },
+
+            // ─── SOSPECHA DEL OPERADOR ───
+            { text: 'Nuevo sistema de sospecha: tu nivel aparece en una barra dedicada dentro de News.com, con tu nombre de operador a la izquierda.', tag: 'new' },
+            { text: 'Cuatro estados visuales con colores y pulsaciones distintas: BAJO PERFIL (verde), VIGILADO (amarillo), BUSCADO (naranja) e IDENTIFICADO (rojo pulsante).', tag: 'new' },
+            { text: 'El nivel sube al desconectarte con un rastreo activo sin borrar el log de conexión (+15 puntos).', tag: 'new' },
+            { text: 'El nivel sube al vender archivos cuya conexión quedó registrada en el server (+10 puntos con tu nombre, +3 puntos si borraste el log y la venta queda anónima).', tag: 'new' },
+            { text: 'El nivel sube al completar contratos de HackNet (+5 puntos), ya que los trabajos se publican en el mercado clandestino.', tag: 'new' },
+            { text: 'Cada evento genera una noticia automática en News.com: con tu nombre si dejaste rastros, o como "filtración anónima" si lograste borrar el log antes de vender.', tag: 'new' },
+            { text: 'Historial interno de los últimos 30 eventos de sospecha, con timestamp, monto, tipo y estado de identificación.', tag: 'new' },
+
+            // ─── DECAY DE SOSPECHA ───
+            { text: 'La sospecha ahora baja sola con el tiempo mientras estás desconectado y sin overlays abiertos: 1 punto cada 30s en BAJO PERFIL, cada 60s en VIGILADO, cada 90s en BUSCADO y cada 2 minutos en IDENTIFICADO.', tag: 'new' },
+            { text: 'La barra de News muestra un indicador en vivo del ritmo de decay: "↓ 1pt / 60s" según tu nivel actual. Cuando estás conectado, avisa "↓ decay pausado (conectado)".', tag: 'new' },
+            { text: 'Decay offline: si cerrás el juego y volvés después, la sospecha baja automáticamente hasta un tope de 40 puntos por carga. Ideal para bajar el perfil dejando la PC apagada.', tag: 'new' },
+
+            // ─── EMAILS POR UMBRAL ───
+            { text: 'Al cruzar el 21% de sospecha (VIGILADO), recibís un aviso de Cyber Defense Division en GoMail.', tag: 'new' },
+            { text: 'Al cruzar el 51% (BUSCADO), recibís una notificación formal de Incident Response anunciando una investigación abierta.', tag: 'new' },
+            { text: 'Al cruzar el 81% (IDENTIFICADO), recibís una orden de allanamiento de la Fiscalía Federal con plazo de 24 horas.', tag: 'new' },
+
+            // ─── ABOGADO EN HACKNET ───
+            { text: 'Nuevo comando "lawyer" en HackNet: contratás un servicio legal clandestino que borra tu nombre de los registros públicos y reduce tu sospecha en 50 puntos de un saque.', tag: 'new' },
+            { text: 'El costo del abogado escala con tu exposición: desde 5.000 CR a 5% hasta 21.000 CR a 100%. Se confirma con "lawyer confirm".', tag: 'new' },
+            { text: 'Al contratar el abogado, recibís un email del bufete confirmando la limpieza del expediente.', tag: 'new' },
+
+            // ─── ALLANAMIENTO Y RAID ───
+            { text: 'Al llegar al 100% de sospecha, se dispara una secuencia de allanamiento: unidad de cibercrimen detectada, protocolo de emergencia y countdown de 15 segundos antes de entrar al lastchance.', tag: 'new' },
+            { text: 'El log del allanamiento tiene scroll propio con barra roja: el título y el countdown quedan siempre visibles aunque se acumulen mensajes.', tag: 'fix' },
+
+            // ─── LAST CHANCE CON IP ALEATORIA ───
+            { text: 'El servidor del centro de rastreo del lastchance ahora tiene una IP aleatoria cada vez (10.x, 172.16-31.x o 192.168.x) en vez de la fija 10.0.0.1.', tag: 'new' },
+            { text: 'La IP del centro de rastreo aparece en el cartel de OBJETIVO del white terminal y en el mensaje "Usá connect X" del modo emergencia.', tag: 'new' },
+            { text: 'Si recargás la página durante el white terminal o el lastchance, la IP se mantiene: se persiste en localStorage junto al resto del estado del lastchance.', tag: 'fix' },
+
+            // ─── WEB SERVERS PROCEDURALES ───
+            { text: 'Nuevo tipo de servidor: sitios web públicos. Aparecen aleatoriamente al escanear, marcados con [WEB] en el output del scan.', tag: 'new' },
+            { text: '15 industrias distintas (tech, gastronomía, viajes, banca, deportes, educación, salud, moda, automotriz, música, inmobiliaria, telecomunicaciones, mascotas, empleos, construcción y prensa).', tag: 'new' },
+            { text: 'Cada web server tiene un dominio único con TLD variado: .com, .io, .ar, .br, .mx, .cl, .es, .uk, .de, .jp y más de 40 opciones.', tag: 'new' },
+            { text: 'Al conectarte a un web server, en vez del formulario de login aparece una página web completa con hero, productos, sección "sobre nosotros", contacto y footer.', tag: 'new' },
+            { text: 'Algunas webs incluyen banners de cookies, widgets de chat flotantes o carteles de "sitio en construcción" para darle más variedad.', tag: 'new' },
+            { text: 'Los web servers son fáciles de hackear a propósito: solo tienen SSH y HTTP en v0.5, sin firewall ni rastreo. La idea es que sean un objetivo relajado.', tag: 'bal' },
+            { text: 'Dentro de un web server no hay archivos vendibles: solo index.html, style.css y logs de acceso. Todo vale 0 créditos.', tag: 'bal' },
+            { text: 'Botón "ABRIR TERMINAL" siempre visible en la toolbar superior del sitio (verde pulsante) y también en el footer como "Acceso empleados".', tag: 'new' },
+            { text: 'Los dominios completos de cada web aparecen en la barra de URL del visor, junto con el tag "SITIO PÚBLICO".', tag: 'new' },
+            { text: 'Comando debug agregado: "debug web [n]" genera n web servers procedurales descubiertos, ideal para probar el feature.', tag: 'new' },
+
+            // ─── COMANDOS DEBUG ───
+            { text: 'Comandos debug agregados: "debug bf" lanza un ataque brute force manualmente, "debug suspicion [n]" muestra o setea el nivel de sospecha, "debug web [n]" spawnea web servers descubiertos.', tag: 'new' },
+
+            // ─── NOTIFICACIONES ───
+            { text: 'Nuevo sistema de notificaciones de mail: cuando llega un mensaje a GoMail, aparece un toast flotante, un badge en la barra superior y suena una alerta.', tag: 'new' },
+            { text: 'El badge del top-bar muestra la cantidad de mails sin leer (ej: "3 MAIL") y desaparece cuando leés todos.', tag: 'new' },
+            { text: 'Click en el badge o en el toast de mail abre GoMail automáticamente, cerrando otros overlays si hace falta.', tag: 'new' },
+
+            // ─── WEBMAIL ───
+            { text: 'Ahora podés borrar mails individualmente con un botón [×] en cada fila de la bandeja.', tag: 'new' },
+            { text: 'Los mails vinculados a misiones activas quedan protegidos: no se pueden borrar hasta reclamar la recompensa en HackNet.', tag: 'new' },
+            { text: 'Al intentar borrar un mail protegido, el row se sacude y aparece un banner de advertencia arriba de la bandeja.', tag: 'new' },
+
+            // ─── TOASTS ───
+            { text: 'Los toasts (mail, update de news, update del servidor) ahora se apilan automáticamente sin solaparse.', tag: 'new' },
+            { text: 'Los toasts se reacomodan suavemente cuando cerrás uno, sin dejar huecos.', tag: 'fix' },
+
+            // ─── IDS DE MISIÓN ───
+            { text: 'Los IDs de misión ahora se muestran como badges destacados con formato "ID: M0001", más fáciles de ubicar al aceptar o reclamar.', tag: 'bal' },
+            { text: 'Al aceptar una misión, el mensaje de confirmación incluye el comando exacto para reclamarla (ej: "claim M0001").', tag: 'fix' },
+
+            // ─── HERRAMIENTAS ───
+            { text: 'Ya no podés correr crackers que no tengas en /bin. Antes se ejecutaban silenciosamente en modo test y consumían RAM.', tag: 'fix' },
+            { text: 'Al intentar correr una herramienta que no tenés, el juego te indica que la consigas en un server o en una misión de HackNet.', tag: 'fix' },
+            { text: 'El mensaje de RAM insuficiente ahora muestra cuánta memoria necesita el proceso y cuánta tenés libre.', tag: 'fix' },
+
+            // ─── ZIPs ───
+            { text: 'Soporte completo de ZIPs sin contraseña: se abren directamente con "unzip archivo.zip".', tag: 'new' },
+            { text: 'El comando ls ahora distingue entre [ZIP] (abierto) y [PROTEGIDO] (con clave).', tag: 'fix' },
+            { text: 'El comando cat sobre un ZIP abierto muestra cuántos archivos contiene y cómo extraerlos.', tag: 'new' },
+            { text: 'El Explorer también reconoce ambos tipos de ZIP y muestra los detalles en el preview.', tag: 'fix' },
+            { text: 'Autocompletado con TAB activado para el comando unzip.', tag: 'fix' },
+
+            // ─── PROBE ───
+            { text: 'probe.com ahora incluye archivos personales de práctica (notas, diario, agenda, contactos) y dos ZIPs, uno con y otro sin contraseña.', tag: 'new' },
+            { text: 'La contraseña del ZIP de práctica está anotada en algún archivo del propio server.', tag: 'new' },
+
+            // ─── TUTORIAL ───
+            { text: 'Tres pasos nuevos en el tutorial interactivo: explica qué son los ZIPs y te guía para abrir uno normal y uno con contraseña.', tag: 'new' },
+            { text: 'Nuevo paso "Sospecha y limpieza legal" que explica el sistema completo: cómo sube, cómo baja y cuándo contratar al abogado.', tag: 'new' },
+            { text: 'El tutorial ahora tiene 25 pasos en lugar de 19.', tag: 'new' },
+
+            // ─── REVIEWS ───
+            { text: 'Corregido bug en Reviews: si cambiabas de pestaña mientras cargaban, el contenido se pintaba encima de la otra pestaña.', tag: 'fix' },
+            { text: 'El login de administrador ahora reemplaza el prompt nativo del navegador por un modal custom con el estilo del juego.', tag: 'new' },
+            { text: 'El panel de admin valida la contraseña contra el backend antes de activarse. Antes, cualquier contraseña activaba el modo visual.', tag: 'fix' },
+            { text: 'La sesión de admin guardada se re-valida al abrir la pestaña Reviews; si la clave ya no sirve, se limpia sola.', tag: 'fix' },
+
+            // ─── UPDATE CHECKER ───
+            { text: 'Corregido loop infinito del toast de actualización: si descartabas una versión, se guardaba para no volver a mostrarla.', tag: 'fix' },
+            { text: 'El botón "RECARGAR AHORA" del toast de update marca la versión como vista antes de recargar.', tag: 'fix' },
+
+            // ─── NOTICIAS ───
+            { text: 'Las noticias ya no se generan al descargar archivos. Solo al venderlos en InfoMarket: el robo es silencioso hasta que se monetiza.', tag: 'bal' },
+            { text: 'El comando unzip ya no muestra cada archivo extraído uno por uno. Solo un mensaje al final con el resumen.', tag: 'fix' },
+            { text: 'Un solo ding al terminar la descompresión, en lugar de un pitido por archivo.', tag: 'fix' },
+
+            // ─── EXPLORER ───
+            { text: 'Corregido bug del Explorer: en carpetas vacías no aparecía el botón ".." para volver al nivel anterior.', tag: 'fix' },
+
+            // ─── LORE / FLAVOR ───
+            { text: 'El pool de archivos sin valor comercial (notas, chats, diarios, sátiras) pasó de 150 a 300 archivos únicos.', tag: 'new' },
+            { text: 'Los archivos nuevos abarcan más categorías: sátira corporativa, referencias a videojuegos, foros oscuros, filosofía, diarios personales y más.', tag: 'new' },
+            { text: 'Los archivos siguen sin repetirse en la misma partida: cada server recibe un set distinto.', tag: 'bal' },
+
+            // ─── VARIOS ───
+            { text: 'Eliminados prácticamente todos los emojis del juego, reemplazados por tags de texto coherentes con el estilo (ej: [ZIP], [PROTEGIDO], [ADMIN]).', tag: 'bal' },
+            { text: 'Corregido bug en debug missions: mostraba las disponibles dos veces en lugar de las activas.', tag: 'fix' }
+        ]
+    },
    {
         version: 'v1.9.1',
         date: '2026-09-24',
@@ -499,9 +641,13 @@ function openNewsWeb() {
     overlay.style.display = 'flex';
     if (typeof input !== 'undefined' && input) input.disabled = true;
 
-    gameState.newsTab = 'latest';
+        gameState.newsTab = 'latest';
     updateNewsTabs();
     renderNewsWeb();
+
+    if (typeof renderSuspicionBar === 'function') {
+        try { renderSuspicionBar(); } catch (e) {}
+    }
 
     if (typeof updateUI === 'function') updateUI();
 }
@@ -686,12 +832,14 @@ function showUpdateToast() {
     window._updateToastTimer = setTimeout(() => {
         toast.style.display = 'none';
     }, 12000);
+    setTimeout(_restackToasts, 10);
 }
 
 function hideUpdateToast() {
     const toast = document.getElementById('update-toast');
     if (toast) toast.style.display = 'none';
     clearTimeout(window._updateToastTimer);
+    setTimeout(_restackToasts, 20);
 }
 
 function goToUpdatesFromToast() {

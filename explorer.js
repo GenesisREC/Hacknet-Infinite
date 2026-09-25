@@ -119,12 +119,38 @@ function renderExplorer() {
         return;
     }
 
+    // ---- El botón ".." siempre va primero (excepto en raíz) ----
+    let html = '';
+    if (cwd !== '/') {
+        html += `<div class="explorer-item explorer-item-up" data-action="up">
+            <div class="explorer-item-icon">↑</div>
+            <div class="explorer-item-info">
+                <div class="explorer-item-name">.. (volver)</div>
+                <div class="explorer-item-meta">Subir un nivel</div>
+            </div>
+            <div class="explorer-item-arrow">▸</div>
+        </div>`;
+    }
+
     const children = cwdNode.children || [];
+
+    // ---- Si está vacía, mostramos solo el ".." y el mensaje ----
     if (children.length === 0) {
-        listEl.innerHTML = `<div class="explorer-empty">Carpeta vacía</div>`;
+        html += `<div class="explorer-empty">Carpeta vacía</div>`;
+        listEl.innerHTML = html;
+
+        // Wiring del ".." (si existe)
+        const upEl = listEl.querySelector('[data-action="up"]');
+        if (upEl) {
+            upEl.addEventListener('click', () => {
+                const parent = cwd.substring(0, cwd.lastIndexOf('/')) || '/';
+                navigateExplorer(parent);
+            });
+        }
         return;
     }
 
+    // ---- Carpetas y archivos ----
     const items = children.map(name => {
         const path = cwd === '/' ? '/' + name : cwd + '/' + name;
         const node = fs[path];
@@ -134,22 +160,10 @@ function renderExplorer() {
     const dirs  = items.filter(it => it.node.type === 'dir').sort((a, b) => a.name.localeCompare(b.name));
     const files = items.filter(it => it.node.type === 'file').sort((a, b) => a.name.localeCompare(b.name));
 
-    let html = '';
-
-    if (cwd !== '/') {
-        html += `<div class="explorer-item explorer-item-up" data-action="up">
-            <div class="explorer-item-icon">⬆</div>
-            <div class="explorer-item-info">
-                <div class="explorer-item-name">.. (volver)</div>
-                <div class="explorer-item-meta">Subir un nivel</div>
-            </div>
-            <div class="explorer-item-arrow">▸</div>
-        </div>`;
-    }
-
     dirs.forEach(d => {
         const count = (d.node.children || []).length;
         html += `<div class="explorer-item explorer-item-dir" data-path="${escapeAttr(d.path)}" data-type="dir">
+            <div class="explorer-item-icon">[D]</div>
             <div class="explorer-item-info">
                 <div class="explorer-item-name">${escapeHtml(d.name)}</div>
                 <div class="explorer-item-meta">Carpeta · ${count} elemento${count === 1 ? '' : 's'}</div>
@@ -158,7 +172,7 @@ function renderExplorer() {
         </div>`;
     });
 
-            files.forEach(f => {
+    files.forEach(f => {
         const node = f.node;
         let meta = '', icon = '[F]', extraClass = '';
         if (node.isExecutable) {
@@ -197,6 +211,7 @@ function renderExplorer() {
 
     listEl.innerHTML = html;
 
+    // Wiring general
     listEl.querySelectorAll('[data-path]').forEach(el => {
         el.addEventListener('click', () => {
             const path = el.getAttribute('data-path');

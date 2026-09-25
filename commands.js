@@ -301,13 +301,14 @@ function handleHacknetCommand(cmd) {
             ▸ HACKNET.ONION — COMANDOS
         </div>
 
-        <table class="help-table" style="margin-top:0;">
+                <table class="help-table" style="margin-top:0;">
             <tr><td>missions</td><td>Lista los contratos disponibles en el tablón</td></tr>
             <tr><td>accept [ID]</td><td>Acepta un contrato del tablón</td></tr>
             <tr><td>active</td><td>Muestra tus contratos activos y su progreso</td></tr>
             <tr><td>claim [ID]</td><td>Reclama la recompensa de un contrato completado</td></tr>
             <tr><td>abandon [ID]</td><td>Abandona un contrato en curso</td></tr>
             <tr><td>wallet</td><td>Muestra tu saldo actual en créditos</td></tr>
+            <tr><td>lawyer</td><td>Contratá un servicio legal para reducir tu sospecha · <code>lawyer confirm</code> para ejecutar</td></tr>
             <tr><td>exit</td><td>Cierra sesión y sale de HackNet</td></tr>
             <tr><td>disconnect</td><td>Alias de <code>exit</code></td></tr>
         </table>
@@ -330,10 +331,11 @@ function handleHacknetCommand(cmd) {
                 const senderTag = m.sender ? ` <span class="text-muted">de ${m.sender}</span>` : '';
                 const ipTag = m.targetIP ? `<span class="text-fire">[IP: ${m.targetIP}]</span> ` : '';
                 html += `<div class="mission-item">
-                    <div class="mission-title"><span class="text-cmd">[${m.id}]</span> <span class="text-warning">${m.title}</span>${senderTag}</div>
-                    <div class="mission-desc">${m.description}</div>
-                    <div class="mission-meta">${ipTag}<span class="text-info">Pago: ${m.rewardCR.toLocaleString()} CR${m.rewardTool ? ' + posible cracker' : ''}</span> <span class="text-muted">· expira en ${exp}m</span></div>
-                </div>`;
+    <div class="mission-id">ID: <b>${m.id}</b></div>
+    <div class="mission-title"><span class="text-warning">${m.title}</span>${senderTag}</div>
+    <div class="mission-desc">${m.description}</div>
+    <div class="mission-meta">${ipTag}<span class="text-info">Pago: ${m.rewardCR.toLocaleString()} CR${m.rewardTool ? ' + posible cracker' : ''}</span> <span class="text-muted">· expira en ${exp}m</span></div>
+</div>`;
             });
             html += '<div class="text-muted" style="margin-top:8px;">Usá: accept [ID]</div></div>';
             output.innerHTML += html;
@@ -357,6 +359,7 @@ function handleHacknetCommand(cmd) {
             }
 
             output.innerHTML += `<span class="text-success">[✓] Contrato aceptado: ${m.title}</span><br>`;
+output.innerHTML += `<span class="text-info">ID del contrato: <b>${m.id}</b> — usalo con </span><span class="text-cmd">claim ${m.id}</span><span class="text-info"> cuando lo completes.</span><br>`;
             if (m.targetIP) {
                 output.innerHTML += `<span class="text-warning">[!] Objetivo: <b>${m.targetIP}</b></span><br>`;
                 output.innerHTML += `<span class="text-info">Tip: escaneá la IP con </span><span class="text-cmd">scan ${m.targetIP}</span><span class="text-info"> para revelarla en el NetMap.</span><br>`;
@@ -379,11 +382,12 @@ function handleHacknetCommand(cmd) {
                 const ready = m.readyToClaim;
                 const statusColor = ready ? '#33ff33' : '#ffcc00';
                 html += `<div class="mission-item">
-                    <div class="mission-title"><span class="text-cmd">[${m.id}]</span> <span style="color:${statusColor};">${ready ? '✓ ' : ''}${m.title}</span></div>
-                    ${m.targetIP ? `<div class="mission-meta"><span class="text-fire">IP: ${m.targetIP}</span></div>` : ''}
-                    <div class="mission-progress">Progreso: ${m.progress}/${m.targetCount}</div>
-                    <div class="mission-meta"><span class="text-info">Pago: ${m.rewardCR.toLocaleString()} CR</span></div>
-                </div>`;
+    <div class="mission-id">ID: <b>${m.id}</b></div>
+    <div class="mission-title"><span style="color:${statusColor};">${ready ? '✓ ' : ''}${m.title}</span></div>
+    ${m.targetIP ? `<div class="mission-meta"><span class="text-fire">IP: ${m.targetIP}</span></div>` : ''}
+    <div class="mission-progress">Progreso: ${m.progress}/${m.targetCount}</div>
+    <div class="mission-meta"><span class="text-info">Pago: ${m.rewardCR.toLocaleString()} CR</span></div>
+</div>`;
             });
             html += '</div>';
             output.innerHTML += html;
@@ -397,7 +401,13 @@ function handleHacknetCommand(cmd) {
             if (idx2 < 0) { output.innerHTML += `<span class="text-error">Contrato no encontrado.</span><br>`; break; }
             const m2 = gameState.missionsActive[idx2];
             if (!m2.readyToClaim) { output.innerHTML += `<span class="text-warning">No completaste este contrato (${m2.progress}/${m2.targetCount}).</span><br>`; break; }
-            gameState.money += m2.rewardCR;
+                        gameState.money += m2.rewardCR;
+
+            // Hook de sospecha
+            if (typeof suspicionOnMissionClaim === 'function') {
+                try { suspicionOnMissionClaim(m2); } catch (e) {}
+            }
+
             output.innerHTML += `<span class="text-success">[✓] ${m2.title} — completado</span><br>`;
             output.innerHTML += `<span class="text-gold">&nbsp;&nbsp;+ ${m2.rewardCR.toLocaleString()} CR</span><br>`;
             if (m2.rewardTool && Math.random() < m2.rewardTool.chance) {
@@ -447,7 +457,104 @@ function handleHacknetCommand(cmd) {
         case 'wallet':
             output.innerHTML += `<span class="text-gold">Saldo: ${gameState.money.toLocaleString()} CR</span><br>`;
             break;
+                case 'lawyer':
+        case 'abogado': {
+            if (!gameState.hacknetSession) {
+                output.innerHTML += `<span class="text-error">Iniciá sesión primero.</span><br>`;
+                break;
+            }
 
+            const susp = gameState.suspicion || 0;
+            if (susp < 5) {
+                output.innerHTML += `<div class="msg-box" style="border-color:#ffaa44;">
+                    <div style="color:#ffaa44; font-weight:bold; letter-spacing:2px;">▸ SERVICIO LEGAL</div>
+                    <div style="margin-top:8px;">Tu nivel de sospecha es <b>${susp}%</b>. No hay nada que limpiar.</div>
+                    <div class="text-muted" style="margin-top:6px;">Volvé cuando estés en problemas.</div>
+                </div>`;
+                break;
+            }
+
+            const cost = 1000 + susp * 200;
+            const reduction = 50;
+            const newSusp = Math.max(0, susp - reduction);
+
+            // Confirmación
+            if (args[1] === 'confirm') {
+                if (gameState.money < cost) {
+                    output.innerHTML += `<div class="msg-box" style="border-color:#ff3333;">
+                        <span class="text-error">[✗] Fondos insuficientes.</span><br>
+                        <span class="text-muted">Necesitás <b>${cost.toLocaleString()} CR</b>. Tenés <b>${gameState.money.toLocaleString()} CR</b>.</span>
+                    </div>`;
+                    break;
+                }
+
+                gameState.money -= cost;
+                gameState.suspicion = newSusp;
+
+                if (typeof renderSuspicionBar === 'function') {
+                    try { renderSuspicionBar(); } catch(e) {}
+                }
+
+                // Email del abogado
+                try {
+                    if (typeof sendGomailEmail === 'function') {
+                        sendGomailEmail(
+                            'bufete@legal-clean.onion',
+                            'Expediente limpio — ' + gameState.localUser,
+                            `Estimado/a ${gameState.localUser}:\n\nHemos procesado su solicitud.\n\n▸ Cargo: ${cost.toLocaleString()} CR\n▸ Sospecha anterior: ${susp}%\n▸ Sospecha actual: ${newSusp}%\n\nSu nombre fue eliminado de los registros públicos. Recomendamos mantener un perfil bajo durante las próximas semanas.\n\nAtentamente,\nDr. Salas — Servicios Legales Clandestinos`
+                        );
+                    }
+                } catch(e) {}
+
+                output.innerHTML += `<div class="msg-box" style="border-color:#00ff88;">
+                    <div style="color:#00ff88; font-weight:bold; letter-spacing:2px;">[✓] EXPEDIENTE LIMPIO</div>
+                    <div style="margin-top:10px;">
+                        ▸ Pagaste: <b>${cost.toLocaleString()} CR</b><br>
+                        ▸ Sospecha: <b style="color:#ff3333;">${susp}%</b> → <b style="color:#00ff88;">${newSusp}%</b><br>
+                        ▸ Reducción aplicada: <b>−${Math.min(reduction, susp)} puntos</b>
+                    </div>
+                    <div class="text-muted" style="margin-top:8px;">Tu nombre fue borrado de los registros públicos. Mantené un perfil bajo.</div>
+                </div>`;
+
+                try { if (typeof soundSuccess === 'function') soundSuccess(); } catch(e) {}
+                updateUI();
+                saveGame();
+                break;
+            }
+
+            // Mostrar oferta
+            const affordable = gameState.money >= cost;
+            const affordColor = affordable ? '#00ff88' : '#ff3333';
+            output.innerHTML += `<div class="msg-box" style="border-color:#ffaa44; padding:18px 22px;">
+
+                <div style="text-align:center; color:#ffaa44; font-weight:bold; letter-spacing:4px; font-size:1.05rem;
+                            border-bottom:1px dashed rgba(255,170,68,0.5); padding-bottom:12px; margin-bottom:16px;">
+                    ▸ SERVICIO LEGAL — LIMPIEZA DE EXPEDIENTE
+                </div>
+
+                <div style="color:#aab8c5; font-size:0.85rem; line-height:1.8; padding:0 4px 14px 4px;">
+                    Contratamos abogados del mercado clandestino que limpian tu nombre de los registros públicos.
+                    El precio escala con tu exposición: cuanto más alto estás, más caro sale hacerte desaparecer.
+                </div>
+
+                <table class="help-table" style="margin-top:0;">
+                    <tr><td>Sospecha actual</td><td><span style="color:#ff3333; font-weight:bold;">${susp}%</span></td></tr>
+                    <tr><td>Reducción ofrecida</td><td><span style="color:#00ff88; font-weight:bold;">−${reduction} puntos</span></td></tr>
+                    <tr><td>Sospecha resultante</td><td><span style="color:#00ff88; font-weight:bold;">${newSusp}%</span></td></tr>
+                    <tr><td>Costo del servicio</td><td><span class="text-gold" style="font-weight:bold; font-size:1.05rem;">${cost.toLocaleString()} CR</span></td></tr>
+                    <tr><td>Tu saldo actual</td><td><span style="color:${affordColor}; font-weight:bold;">${gameState.money.toLocaleString()} CR</span></td></tr>
+                </table>
+
+                <div style="text-align:center; color:#aab8c5; font-size:0.82rem; margin-top:16px;
+                            padding-top:12px; border-top:1px dashed rgba(255,170,68,0.35);">
+                    ${affordable
+                        ? 'Para confirmar el contrato: <span class="text-cmd">lawyer confirm</span>'
+                        : '<span class="text-error">No tenés fondos suficientes para contratar el servicio.</span>'}
+                </div>
+
+            </div>`;
+            break;
+        }
         case 'exit':
         case 'disconnect':
             exitHacknet();
@@ -463,6 +570,27 @@ function handleHacknetCommand(cmd) {
 // ============================================================
 function handleDebugCommand(args) {
     const sub = (args[1] || '').toLowerCase();
+        if (sub === 'bf' || sub === 'bruteforce') {
+        if (typeof launchBruteforceAttack === 'function') {
+            launchBruteforceAttack();
+        } else {
+            output.innerHTML += `<span class="text-error">Bruteforce no disponible.</span><br>`;
+        }
+        return;
+    }
+
+    if (sub === 'suspicion') {
+        const n = parseInt(args[2]);
+        if (isNaN(n)) {
+            output.innerHTML += `<span class="text-info">Sospecha actual: ${gameState.suspicion || 0}%</span><br>`;
+        } else {
+            gameState.suspicion = Math.max(0, Math.min(100, n));
+            if (typeof renderSuspicionBar === 'function') renderSuspicionBar();
+            output.innerHTML += `<span class="text-success">[✓] Sospecha → ${gameState.suspicion}%</span><br>`;
+        }
+        return;
+    }
+
     if (!sub || sub === 'help') {
         output.innerHTML += `<div class="msg-box" style="border-color:#ff8833;">
             <div style="color:#ff8833; font-weight:bold; margin-bottom:8px;">▸ DEBUG — Solo probe.com</div>
@@ -478,6 +606,8 @@ function handleDebugCommand(args) {
                 <tr><td>debug cpu [n]</td><td>CPU nivel n</td></tr>
                 <tr><td>debug antenna [n]</td><td>Antenna nivel n</td></tr>
                 <tr><td>debug mail</td><td>Genera email de prueba</td></tr>
+		<tr><td>debug bf</td><td>Lanzar ataque brute force</td></tr>
+		<tr><td>debug suspicion [n]</td><td>Ver/setear sospecha (0-100)</td></tr>
             </table>
         </div>`;
         return;
@@ -486,12 +616,14 @@ function handleDebugCommand(args) {
         output.innerHTML += `<div class="msg-box" style="border-color:#ff8833;">`;
         output.innerHTML += `<div style="color:#ff8833;">Disponibles: ${gameState.missionsAvailable.length}</div>`;
         gameState.missionsAvailable.forEach(m => {
-            output.innerHTML += `<div>&nbsp;&nbsp;<span class="text-cmd">[${m.id}]</span> ${m.title} ${m.targetIP ? `(IP: ${m.targetIP})` : ''} <span class="text-muted">(${m.rewardCR} CR)</span></div>`;
+            output.innerHTML += `<div>&nbsp;&nbsp;<span class="mission-id">ID: <b>${m.id}</b></span> · ${m.title} ${m.targetIP ? `(IP: ${m.targetIP})` : ''} <span class="text-muted">(${m.rewardCR} CR)</span></div>`;
         });
         output.innerHTML += `<div style="color:#ff8833; margin-top:6px;">Activas: ${gameState.missionsActive.length}</div>`;
         gameState.missionsActive.forEach(m => {
-            const st = m.readyToClaim ? '<span class="text-success">[READY]</span>' : `<span class="text-muted">[${m.progress}/${m.targetCount}]</span>`;
-            output.innerHTML += `<div>&nbsp;&nbsp;<span class="text-cmd">[${m.id}]</span> ${m.title} ${st}</div>`;
+            const st = m.readyToClaim
+                ? '<span class="text-success">[READY]</span>'
+                : `<span class="text-muted">[${m.progress}/${m.targetCount}]</span>`;
+            output.innerHTML += `<div>&nbsp;&nbsp;<span class="mission-id">ID: <b>${m.id}</b></span> · ${m.title} ${st}</div>`;
         });
         output.innerHTML += `</div>`;
         return;
@@ -1125,7 +1257,11 @@ if (typeof InteractiveTutorialOnCommand === 'function') {
                 output.innerHTML += `<div class="msg-box"><span class="text-error">[!] Rastreo activo (${timeStr}).</span></div>`;
                 startTrace(server.traceDuration);
             }
-            openConnectOverlay(server);
+                        if (server.isWebServer) {
+                openWebViewer(server);
+            } else {
+                openConnectOverlay(server);
+            }
             updateUI();
             saveGame();
             break;
@@ -1160,69 +1296,84 @@ if (typeof InteractiveTutorialOnCommand === 'function') {
             break;
         }
 
-        case 'run': {
-    if (!args[1]) { output.innerHTML += `<span class="text-error">Uso: run [exe] [puerto?]</span><br>`; break; }
-
-    // HELP.exe es una app especial: se busca en el FS local.
-    // Si existe, abre el tutorial interactivo. Si no, error.
-    if (args[1].toLowerCase() === 'help.exe') {
-        const helpPath = '/home/user/documentos/HELP.exe';
-        if (localFS[helpPath] && localFS[helpPath].isHelpExe) {
-            if (typeof InteractiveTutorialStart === 'function') {
-                InteractiveTutorialStart();
+                case 'run': {
+            if (!args[1]) {
+                output.innerHTML += `<span class="text-error">Uso: run [exe] [puerto?]</span><br>`;
+                break;
             }
-        } else {
-            output.innerHTML += `<span class="text-error">run: HELP.exe no encontrado (¿lo borraste?).</span><br>`;
-        }
-        break;
-    }
 
-    const toolName = args[1];
-    const template = TOOL_TEMPLATES[toolName];
-    if (!template) { output.innerHTML += `<span class="text-error">'${toolName}' no es válido.</span><br>`; break; }
-    if (template.isApp) { output.innerHTML += `<span class="text-warning">'${toolName}' es una app.</span><br>`; break; }
+            // ---- HELP.exe (caso especial) ----
+            if (args[1].toLowerCase() === 'help.exe') {
+                const helpPath = '/home/user/documentos/HELP.exe';
+                if (localFS[helpPath] && localFS[helpPath].isHelpExe) {
+                    if (typeof InteractiveTutorialStart === 'function') {
+                        InteractiveTutorialStart();
+                    }
+                } else {
+                    output.innerHTML += `<span class="text-error">run: HELP.exe no encontrado (¿lo borraste?).</span><br>`;
+                }
+                break;
+            }
 
-    let tool = gameState.tools.find(t => t.name === toolName);
-    const ownsTool = !!tool && localFS['/bin'].children.includes(toolName);
-    let portObj = null;
-    let portNum = null;
+            // ---- Validar nombre ----
+            const toolName = args[1];
+            const template = TOOL_TEMPLATES[toolName];
+            if (!template) {
+                output.innerHTML += `<span class="text-error">'${toolName}' no es un ejecutable válido.</span><br>`;
+                break;
+            }
+            if (template.isApp) {
+                output.innerHTML += `<span class="text-warning">'${toolName}' es una app. Abrilo con su comando propio.</span><br>`;
+                break;
+            }
 
-    if (args[2]) {
-        portNum = parseInt(args[2]);
-        if (isNaN(portNum) || portNum <= 0 || portNum > 65535) {
-            output.innerHTML += `<span class="text-error">Puerto inválido.</span><br>`;
-            break;
-        }
-        if (!ownsTool) {
-            // No tiene la tool: modo test (corre a velocidad de prueba, sin objetivo)
-            tool = { name: toolName, v: 1.0, ram: template.ram, service: template.service };
-            portNum = null;
-        } else if (gameState.isConnected && gameState.currentServer) {
+            // ---- Verificación estricta: hay que TENER la tool ----
+            const tool = gameState.tools.find(t => t.name === toolName);
+            const inBin = localFS['/bin'] &&
+                          Array.isArray(localFS['/bin'].children) &&
+                          localFS['/bin'].children.includes(toolName);
+
+            if (!tool || !inBin) {
+                output.innerHTML += `<span class="text-error">[✗] '${toolName}' no está en /bin.</span><br>`;
+                output.innerHTML += `<span class="text-muted">Conseguilo en un server o en una misión de HackNet.</span><br>`;
+                break;
+            }
+
+            // ---- Sin puerto: modo test (solo si la tenés) ----
+            if (!args[2]) {
+                launchTool(tool, null, null);
+                break;
+            }
+
+            // ---- Con puerto: validar que estés conectado ----
+            if (!gameState.isConnected || !gameState.currentServer) {
+                output.innerHTML += `<span class="text-error">[✗] No estás conectado a ningún server.</span><br>`;
+                break;
+            }
+
+            const portNum = parseInt(args[2]);
+            if (isNaN(portNum) || portNum <= 0 || portNum > 65535) {
+                output.innerHTML += `<span class="text-error">Puerto inválido.</span><br>`;
+                break;
+            }
+
             const foundPort = gameState.currentServer.ports.find(p => p.port === portNum);
             if (!foundPort) {
-                portNum = null;
-            } else if (foundPort.service !== tool.service) {
-                output.innerHTML += `<span class="text-error">Servicio incorrecto.</span><br>`;
+                output.innerHTML += `<span class="text-error">[✗] El puerto ${portNum} no existe en este server.</span><br>`;
                 break;
-            } else if (foundPort.state === 'open') {
-                output.innerHTML += `<span class="text-warning">Puerto ya abierto.</span><br>`;
-                break;
-            } else {
-                portObj = foundPort;
             }
-        } else {
-            portNum = null;
-        }
-    } else {
-        if (!ownsTool) {
-            output.innerHTML += `<span class="text-error">'${toolName}' no en /bin.</span><br>`;
+            if (foundPort.service !== tool.service) {
+                output.innerHTML += `<span class="text-error">[✗] ${toolName} no sirve para el servicio ${foundPort.service}.</span><br>`;
+                break;
+            }
+            if (foundPort.state === 'open') {
+                output.innerHTML += `<span class="text-warning">El puerto ${portNum} ya está abierto.</span><br>`;
+                break;
+            }
+
+            launchTool(tool, foundPort, portNum);
             break;
         }
-    }
-
-    launchTool(tool, portObj, portNum);
-    break;
-}
 
                 case 'ls': {
             const fsLs = getCurrentFS(), cwdLs = getCurrentCWD();
@@ -1558,11 +1709,17 @@ if (typeof InteractiveTutorialOnCommand === 'function') {
             break;
         }
 
-        case 'disconnect':
+           case 'disconnect':
             if (!gameState.isConnected && !gameState.inHacknet && !gameState.inGomail) { output.innerHTML += `<span class="text-error">No conectado.</span><br>`; break; }
             if (gameState.inHacknet) { exitHacknet(); break; }
             if (gameState.inGomail) { closeGomailWeb(); break; }
             closeWallbreakerApp(true);
+
+            // Hook de sospecha: desconexión con log activo
+            if (gameState.currentServer && typeof suspicionOnDisconnect === 'function') {
+                try { suspicionOnDisconnect(gameState.currentServer); } catch (e) {}
+            }
+
             if (gameState.currentServer) resetServerAccess(gameState.currentServer);
             gameState.isConnected = false;
             gameState.isAuthenticated = false;
@@ -1793,6 +1950,10 @@ function resetGame() {
     // ── Anti-duplicados ───────────────────────────────────────
     gameState.downloadedFileIds = [];
     gameState.usedFlavorIds = [];
+
+    // ── Sospecha ──────────────────────────────────────────────
+    gameState.suspicion = 0;
+    gameState.suspicionHistory = [];
 
     // ── Tutorial ──────────────────────────────────────────────
     gameState.tutorialOpen = false;

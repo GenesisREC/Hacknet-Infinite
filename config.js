@@ -1,13 +1,24 @@
 // ============================================================
 // SAVE VERSIONING & MIGRATION
 // ============================================================
-const SAVE_KEY = 'hacknet_save';                        // clave unificada actual
+const SAVE_KEY = 'hacknet_save';
 const SAVE_KEY_LEGACY = ['hacknet_save_v3', 'hacknet_save_v2', 'hacknet_save_v1'];
-const SAVE_VERSION = 4;                                 // ← subir cuando rompas compatibilidad
+const SAVE_VERSION = 5;
 const UPDATE_SEEN_KEY = 'hacknet_last_seen_version';
 
 // Info mostrada en el overlay de migración (por versión objetivo)
 const SAVE_VERSION_INFO = {
+    5: {
+        release: 'v1.9.2',
+        label: 'Actualización incompatible',
+        highlights: [
+            'Sistema de sospecha y decay pasivo',
+            'Minijuego de defensa brute force',
+            'Web servers procedurales',
+            'Nuevo tutorial interactivo (25 pasos)',
+            'Abogado en HackNet y lastchance con IP aleatoria'
+        ]
+    },
     4: {
         release: 'v1.6.0',
         label: 'Actualización mayor',

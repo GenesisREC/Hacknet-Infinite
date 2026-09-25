@@ -189,6 +189,15 @@ const IT_STEPS = [
       waitForButton: true,
       buttonLabel: '▸ ENTENDIDO' },
 
+        // ---------- SOSPECHA Y LIMPIEZA ----------
+        { id: 'intro_suspicion',
+      title: 'Paso 23 · Sospecha y limpieza legal',
+      body: 'A medida que operás, tu nivel de sospecha sube. Tres cosas te delatan: desconectarte con un rastreo activo sin borrar el log, vender archivos cuya conexión quedó registrada, y completar contratos de HackNet. Si borrás el log ANTES de desconectarte o de vender, no sube nada.\n\nLa sospecha se muestra en News.com como una barra con tu nombre: BAJO PERFIL (verde), VIGILADO (amarillo), BUSCADO (naranja) e IDENTIFICADO (rojo). Si llega al 100%, entrás a un allanamiento y perdés.\n\nPara bajarla hay dos formas. Primero: el tiempo. Si estás desconectado y sin overlays abiertos, baja sola. Cuanto más alto el nivel, más lento el goteo (de 30s por punto a 2 minutos por punto). También baja si cerrás el juego y volvés después: hasta 40 puntos de golpe.\n\nSegundo: contratar un abogado. En HackNet, el comando "lawyer" te ofrece un servicio legal que limpia tu expediente. Reducís 50 puntos de un saque. El precio escala con tu sospecha: a 20% cuesta 17.000 CR, a 100% cuesta 45.000 CR. Aceptás con "lawyer confirm".\n\nRegla de oro: SIEMPRE borrá el log de conexión antes de desconectarte o de vender. Es gratis y es la mejor defensa.',
+      hint: null,
+      hintText: 'En resumen: no te ensucies, y si te ensuciás, pagá un abogado.',
+      waitForButton: true,
+      buttonLabel: '▸ ENTENDIDO' },
+
     // ---------- PASO FINAL: BORRAR HELP.exe ----------
     { id: 'rm_help',
       title: 'Paso final · Borrá el manual',

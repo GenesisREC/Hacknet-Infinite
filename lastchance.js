@@ -6,6 +6,20 @@ const LAST_CHANCE_SAVE_KEY = 'hacknet_lastchance_v2.3';
 const LC_WRONG_FILE_PENALTY = 8;
 
 // ============================================================
+// GENERADOR DE IP ALEATORIA PARA EL CENTRO DE RASTREO
+// ============================================================
+function generateLastChanceIP() {
+    const a = [10, 172, 192][Math.floor(Math.random() * 3)];
+    if (a === 10) {
+        return `10.${Math.floor(Math.random()*256)}.${Math.floor(Math.random()*256)}.${Math.floor(Math.random()*254)+1}`;
+    }
+    if (a === 172) {
+        return `172.${16 + Math.floor(Math.random()*16)}.${Math.floor(Math.random()*256)}.${Math.floor(Math.random()*254)+1}`;
+    }
+    return `192.168.${Math.floor(Math.random()*256)}.${Math.floor(Math.random()*254)+1}`;
+}
+
+// ============================================================
 // PERSISTENCIA DEL LAST-CHANCE (anti-reload)
 // ============================================================
 function persistLastChanceState(state) {
@@ -520,7 +534,21 @@ function playShutdownAnimation(callback) {
 // ============================================================
 function enterWhiteTerminal() {
     gameState.gamePhase = 'white-terminal';
-    persistLastChanceState({ phase: 'pending' });
+
+    // === IP aleatoria del centro de rastreo ===
+    // Si venimos de un reload con phase 'pending' y ya hay una IP guardada, la usamos.
+    // Si no, generamos una nueva.
+    const persisted = getPersistedLastChance();
+    if (persisted && persisted.serverIP) {
+        gameState.lastChanceServerIP = persisted.serverIP;
+    } else if (!gameState.lastChanceServerIP) {
+        gameState.lastChanceServerIP = generateLastChanceIP();
+    }
+
+    persistLastChanceState({
+        phase: 'pending',
+        serverIP: gameState.lastChanceServerIP
+    });
 
     document.body.classList.remove('quick-trace-active', 'trace-active', 'trace-critical', 'lastchance-mode');
     if (gameState.traceInterval) clearInterval(gameState.traceInterval);
@@ -567,6 +595,9 @@ function showWhiteTerminalMessages() {
     body.innerHTML = '';
     body.scrollTop = 0;
 
+    // IP aleatoria del centro de rastreo (asignada en enterWhiteTerminal)
+    const targetIP = gameState.lastChanceServerIP || '10.0.0.1';
+
     // === TEXTO DEL BOOT ===
     const bootLines = [
         'AMIBIOS (C) 2024 Emergency Systems Inc.',
@@ -611,7 +642,7 @@ function showWhiteTerminalMessages() {
         '> Vas a ser reconectado a la PC del atacante.',
         '',
         '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━',
-        '  OBJETIVO: CENTRO DE RASTREO  10.0.0.1',
+        '  OBJETIVO: CENTRO DE RASTREO  ' + targetIP,
         '  TIEMPO LÍMITE: ' + LAST_CHANCE_DURATION + ' SEGUNDOS',
         '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━',
         '',
@@ -819,7 +850,11 @@ function startLastChance() {
     remoteFS = {};
     remoteCWD = '/root';
 
-    const lcServer = createLastChanceServer();
+    // Usar la IP generada (o generar una si por algún motivo no existe)
+    const lcIP = gameState.lastChanceServerIP || generateLastChanceIP();
+    gameState.lastChanceServerIP = lcIP;
+
+    const lcServer = createLastChanceServer(null, lcIP);
     gameState.servers = [lcServer];
     gameState.lastChanceServer = lcServer;
 
@@ -833,7 +868,8 @@ function startLastChance() {
     persistLastChanceState({
         phase: 'active',
         timeLeft: gameState.lastChanceTimeLeft,
-        targetPath: gameState.lastChanceTargetPath
+        targetPath: gameState.lastChanceTargetPath,
+        serverIP: lcIP
     });
 
     output.innerHTML = '';
@@ -842,7 +878,7 @@ function startLastChance() {
         '<div style="color:#ffcc00; margin-top:8px;">Tenés <b>' + LAST_CHANCE_DURATION + ' segundos</b> para hackear el servidor atacante y borrar el registro con tu IP.</div>' +
         '<div style="color:#ffcc00;">El registro correcto contiene <b>IP objetivo: 127.0.0.1</b>. Los demás son trampas.</div>' +
         '<div style="color:#ffcc00;">Borrar un archivo incorrecto te resta <b>' + LC_WRONG_FILE_PENALTY + 's</b>.</div>' +
-        '<div style="color:#ffcc00;">Usá <b>connect ' + lcServer.ip + '</b> para entrar.</div>' +
+        '<div style="color:#ffcc00;">Usá <b>connect ' + lcIP + '</b> para entrar.</div>' +
         '</div>';
 
     promptSymbol.textContent = `${gameState.localUser}@local:${localCWD}$`;
@@ -861,7 +897,8 @@ function startLastChance() {
         persistLastChanceState({
             phase: 'active',
             timeLeft: gameState.lastChanceTimeLeft,
-            targetPath: gameState.lastChanceTargetPath
+            targetPath: gameState.lastChanceTargetPath,
+            serverIP: lcIP
         });
         if (gameState.lastChanceTimeLeft <= 10 && gameState.lastChanceTimeLeft > 0) {
             playTraceCriticalPip();
@@ -899,8 +936,12 @@ function resumeLastChance(saved) {
     remoteFS = {};
     remoteCWD = '/root';
 
+    // Restaurar la IP del estado persistido (o generar una si no existe)
+    const lcIP = saved.serverIP || gameState.lastChanceServerIP || generateLastChanceIP();
+    gameState.lastChanceServerIP = lcIP;
+
     const forcedTargetName = saved.targetPath ? saved.targetPath.split('/').pop() : null;
-    const lcServer = createLastChanceServer(saved.targetPath || null);
+    const lcServer = createLastChanceServer(saved.targetPath || null, lcIP);
     gameState.servers = [lcServer];
     gameState.lastChanceServer = lcServer;
 
@@ -917,7 +958,7 @@ function resumeLastChance(saved) {
         '<div style="color:#ffcc00; margin-top:8px;">El sistema detectó un reinicio. Retomando desde donde quedaste.</div>' +
         '<div style="color:#ffcc00;">Tenés <b>' + gameState.lastChanceTimeLeft + ' segundos</b> restantes.</div>' +
         '<div style="color:#ffcc00;">El registro correcto contiene <b>IP objetivo: 127.0.0.1</b>.</div>' +
-        '<div style="color:#ffcc00;">Usá <b>connect ' + lcServer.ip + '</b> para entrar.</div>' +
+        '<div style="color:#ffcc00;">Usá <b>connect ' + lcIP + '</b> para entrar.</div>' +
         '</div>';
 
     promptSymbol.textContent = `${gameState.localUser}@local:${localCWD}$`;
@@ -936,7 +977,8 @@ function resumeLastChance(saved) {
         persistLastChanceState({
             phase: 'active',
             timeLeft: gameState.lastChanceTimeLeft,
-            targetPath: gameState.lastChanceTargetPath
+            targetPath: gameState.lastChanceTargetPath,
+            serverIP: lcIP
         });
         if (gameState.lastChanceTimeLeft <= 10 && gameState.lastChanceTimeLeft > 0) {
             playTraceCriticalPip();
@@ -967,7 +1009,7 @@ function updateLastChanceBar() {
 // ============================================================
 // SERVER DE LAST CHANCE
 // ============================================================
-function createLastChanceServer(forcedTargetPath) {
+function createLastChanceServer(forcedTargetPath, forcedIP) {
     const bestVersion = getBestToolVersion();
     const portVersion = Math.max(0.5, Math.min(5.0, bestVersion - 0.15 + Math.random() * 0.3));
 
@@ -994,7 +1036,7 @@ function createLastChanceServer(forcedTargetPath) {
     }
 
     return {
-        ip: '10.0.0.1',
+        ip: forcedIP || generateLastChanceIP(),
         name: 'CENTRO DE RASTREO',
         alias: 'LAST_CHANCE',
         ports,
@@ -1302,8 +1344,19 @@ function restoreAfterVictory() {
     gameState.lastChanceServer = null;
     gameState.lastChanceTargetPath = null;
     gameState.lastChanceTimeLeft = 0;
+    gameState.lastChanceServerIP = null;
     document.body.classList.remove('lastchance-mode');
     clearPersistedLastChance();
+
+    if (typeof resetSuspicion === 'function') {
+        try { resetSuspicion(); } catch (e) {}
+    }
+    if (typeof renderSuspicionBar === 'function') {
+        try { renderSuspicionBar(); } catch (e) {}
+    }
+    if (typeof startSuspicionDecay === 'function') {
+        try { startSuspicionDecay(); } catch (e) {}
+    }
 
     generateNetwork();
     localFS = buildInitialLocalFS();
@@ -1353,7 +1406,8 @@ function checkLastChanceFileDeleted(path) {
         persistLastChanceState({
             phase: 'active',
             timeLeft: gameState.lastChanceTimeLeft,
-            targetPath: gameState.lastChanceTargetPath
+            targetPath: gameState.lastChanceTargetPath,
+            serverIP: gameState.lastChanceServerIP
         });
 
         output.innerHTML += `<div class="msg-box" style="border-color:#ff0000; background:rgba(60,0,0,0.4);">` +
@@ -1367,3 +1421,103 @@ function checkLastChanceFileDeleted(path) {
 
     return false;
 }
+
+// ============================================================
+// SECUENCIA DE ALLANAMIENTO — Al llegar al 100% de sospecha
+// ============================================================
+function enterRaidSequence() {
+    if (gameState.gamePhase !== 'normal') return;
+
+    // Marcar como fase intermedia (por si recargan)
+    gameState.gamePhase = 'white-terminal';
+    persistLastChanceState({ phase: 'pending' });
+
+    // Cerrar overlays y detener timers
+    if (gameState.traceInterval) clearInterval(gameState.traceInterval);
+    gameState.traceInterval = null;
+    if (typeof stopSuspicionDecay === 'function') stopSuspicionDecay();
+    if (typeof killAllProcesses === 'function') killAllProcesses();
+    if (typeof stopScannerSound === 'function') stopScannerSound();
+    if (typeof closeWallbreakerApp === 'function') closeWallbreakerApp(true);
+
+    ['market-form-overlay', 'market-web-overlay', 'hacknet-form-overlay',
+     'gomail-form-overlay', 'gomail-web-overlay', 'connect-overlay',
+     'wallbreaker-section', 'lastchance-bar', 'news-web-overlay',
+     'bf-overlay'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.style.display = 'none';
+    });
+
+    const overlay = document.getElementById('raid-overlay');
+    if (!overlay) {
+        // Fallback: ir directo al white terminal
+        if (typeof enterWhiteTerminal === 'function') enterWhiteTerminal();
+        return;
+    }
+    overlay.classList.add('active');
+
+    // Sonidos
+    try { if (typeof initAudio === 'function') initAudio(); } catch(e) {}
+    try { if (typeof playShutdownSound === 'function') playShutdownSound(); } catch(e) {}
+    try { if (typeof haptic === 'function') haptic([100, 50, 100, 50, 200]); } catch(e) {}
+
+    const logEl = document.getElementById('raid-log');
+    const countdownEl = document.getElementById('raid-countdown-value');
+    if (logEl) logEl.innerHTML = '';
+
+    // Secuencia de logs
+    const script = [
+        { text: '▸ Unidad de Cibercrimen detectada en ruta', cls: 'warn', delay: 200 },
+        { text: '▸ Vehículo identificado: patrullero 47-A', cls: '', delay: 900 },
+        { text: '▸ Cortando comunicaciones externas...', cls: 'warn', delay: 1600 },
+        { text: '▸ ████████ desconectado', cls: 'err', delay: 2300 },
+        { text: '', cls: '', delay: 2700 },
+        { text: '> INICIANDO PROTOCOLO DE EMERGENCIA', cls: 'title', delay: 3000 },
+        { text: '> Borrando rastros locales...', cls: '', delay: 3800 },
+        { text: '> [ OK ] /var/log limpiado', cls: 'ok', delay: 4600 },
+        { text: '> [ OK ] /tmp limpiado', cls: 'ok', delay: 5200 },
+        { text: '> [ OK ] cachés eliminadas', cls: 'ok', delay: 5700 },
+        { text: '', cls: '', delay: 6000 },
+        { text: '> Montando unidad cifrada...', cls: '', delay: 6300 },
+        { text: '> ✗ ERROR: Kernel comprometido', cls: 'err', delay: 7100 },
+        { text: '> ✗ ERROR: Memoria corrupta', cls: 'err', delay: 7700 },
+        { text: '> ✗ ERROR: Proceso interrumpido', cls: 'err', delay: 8300 },
+        { text: '', cls: '', delay: 8700 },
+        { text: '> ✗ UNIDAD CIFRADA INACCESIBLE', cls: 'err', delay: 9000 },
+        { text: '> ✗ PROTOCOLO DE EMERGENCIA INCOMPLETO', cls: 'err', delay: 9800 },
+        { text: '', cls: '', delay: 10300 },
+        { text: '⚠ SECUESTRO DE HARDWARE INMINENTE ⚠', cls: 'warn', delay: 10800 },
+        { text: '', cls: '', delay: 11400 },
+        { text: '> Preparando último intento desde el servidor remoto...', cls: 'ok', delay: 11800 }
+    ];
+
+    script.forEach(item => {
+        setTimeout(() => {
+            if (!logEl) return;
+            const line = document.createElement('div');
+            line.className = 'raid-log-line ' + (item.cls || '');
+            line.textContent = item.text || '\u00A0';
+            logEl.appendChild(line);
+            logEl.scrollTop = logEl.scrollHeight;
+        }, item.delay);
+    });
+
+    // Countdown visual: 15 → 0 en 15s
+    let countdown = 15;
+    if (countdownEl) countdownEl.textContent = countdown;
+    const cdInterval = setInterval(() => {
+        countdown--;
+        if (countdownEl) countdownEl.textContent = Math.max(0, countdown);
+        try { if (typeof playTraceCriticalPip === 'function') playTraceCriticalPip(); } catch(e) {}
+        if (countdown <= 0) {
+            clearInterval(cdInterval);
+            // Transición al white terminal
+            setTimeout(() => {
+                overlay.classList.remove('active');
+                if (typeof enterWhiteTerminal === 'function') enterWhiteTerminal();
+            }, 300);
+        }
+    }, 1000);
+}
+
+window.enterRaidSequence = enterRaidSequence;

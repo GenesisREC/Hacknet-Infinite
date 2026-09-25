@@ -41,6 +41,12 @@ const gameState = {
     lastChanceServer: null,
     lastChanceTargetPath: null,
 
+    // ==== SOSPECHA ====
+    suspicion: 0,
+    suspicionHistory: [],
+    suspicionThresholdsHit: {},
+    lastSeenAt: Date.now(),
+
     // ==== TUTORIAL ====
     tutorialOpen: false,
 
@@ -183,6 +189,13 @@ function soundCrackerDrop() {
     playTone(800, 0.05, 'square', 0.03, 1400);
     setTimeout(() => playTone(1400, 0.12, 'sine', 0.04), 60);
     haptic([30, 20, 60]);
+}
+
+function soundNewMail() {
+    // Ding suave de dos notas — "tenés un mensaje"
+    playTone(880, 0.08, 'sine', 0.035, 1100);
+    setTimeout(() => playTone(1320, 0.12, 'sine', 0.032, 1320), 90);
+    if (typeof haptic === 'function') haptic([20, 30, 20]);
 }
 
 let scannerOsc = null, scannerGain = null, scannerLFO = null, scannerLFOGain = null, scannerSubOsc = null, scannerSubGain = null;
@@ -961,6 +974,13 @@ function generateUniqueIP(usedIPs) {
 
 function createServerObject(ip, netIndex, tier, opts) {
     opts = opts || {};
+
+    const isWebRoll = opts.isWebServer === true ||
+                      (opts.isWebServer === undefined && Math.random() < 0.15);
+    if (isWebRoll && typeof createWebServerObject === 'function') {
+        return createWebServerObject(ip, netIndex);
+    }
+
     if (tier === undefined) tier = getPlayerTier();
     const cfg = getTierConfig(tier);
     const profile = getCompatibleProfile(tier);
@@ -1543,7 +1563,12 @@ function saveGame() {
             newsLog: gameState.newsLog || [],
             newsCounter: gameState.newsCounter || 0,
             downloadedFileIds: gameState.downloadedFileIds || [],
-            usedFlavorIds: gameState.usedFlavorIds || []
+            usedFlavorIds: gameState.usedFlavorIds || [],
+            suspicion: gameState.suspicion || 0,
+            suspicionHistory: gameState.suspicionHistory || [],
+            suspicionThresholdsHit: gameState.suspicionThresholdsHit || {},
+            lastSeenAt: Date.now()
+
         };
         serialized = JSON.stringify(save);
     } catch (serErr) {
@@ -1704,6 +1729,21 @@ try {
         gameState.newsCounter = save.newsCounter || 0;
         gameState.downloadedFileIds = save.downloadedFileIds || [];
         gameState.usedFlavorIds = save.usedFlavorIds || [];
+	        gameState.suspicion = save.suspicion || 0;
+        gameState.suspicionHistory = save.suspicionHistory || [];
+        gameState.suspicionThresholdsHit = save.suspicionThresholdsHit || {};
+        gameState.lastSeenAt = save.lastSeenAt || Date.now();
+
+        // Aplicar decay offline después de un tick (para que la UI esté lista)
+        setTimeout(() => {
+            if (typeof applyOfflineSuspicionDecay === 'function') {
+                const puntos = applyOfflineSuspicionDecay();
+                if (puntos > 0 && typeof output !== 'undefined') {
+                    output.innerHTML += `<span class="text-muted">[i] Mientras estabas fuera, tu sospecha bajó ${puntos} puntos.</span><br>`;
+                    output.scrollTop = output.scrollHeight;
+                }
+            }
+        }, 1500);
         gameState.inNews = false;
         gameState.newsOpen = false;
         gameState.newsTab = 'latest';
@@ -1899,12 +1939,21 @@ function sendGomailEmail(from, subject, body, missionId) {
     if (!gameState.gomailInbox) gameState.gomailInbox = [];
     const now = new Date();
     const ts = `${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
-    gameState.gomailInbox.unshift({
+    const newMail = {
         id: 'e' + Date.now() + Math.floor(Math.random() * 1000),
         from, subject, body, time: ts, read: false,
         missionId: missionId || null
-    });
+    };
+    gameState.gomailInbox.unshift(newMail);
     if (gameState.gomailInbox.length > 50) gameState.gomailInbox.pop();
+
+    // Notificación (si el módulo está cargado)
+    if (typeof notifyNewMail === 'function') {
+        try { notifyNewMail(newMail); } catch (e) {}
+    }
+
+    // Persistir el mail inmediatamente por si el jugador cierra
+    try { if (typeof saveGame === 'function') saveGame(); } catch (e) {}
 }
 // ============================================================
 // FLAVOR FILES — Archivos chatarra únicos

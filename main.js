@@ -66,7 +66,7 @@ function getSuggestions(inputText) {
     // ============================================================
     if (gameState.inHacknet) {
         if (parts.length <= 1) {
-            const cmds = ['help', 'missions', 'accept', 'active', 'claim', 'abandon', 'wallet', 'exit', 'disconnect'];
+            const cmds = ['help', 'missions', 'accept', 'active', 'claim', 'abandon', 'wallet', 'lawyer', 'exit', 'disconnect'];
             matches = cmds.filter(c => c.startsWith(currentPart.toLowerCase()));
         } else if (['accept', 'claim', 'abandon'].includes(parts[0].toLowerCase())) {
             const list = parts[0].toLowerCase() === 'accept' ? gameState.missionsAvailable : gameState.missionsActive;

@@ -312,16 +312,23 @@ function sellMarketFile(fileName) {
         marketLog('Ese archivo no tiene valor.', 'error');
         return;
     }
+
+    const sourceServerIP = file.sourceServerIP || null;
+
     delete localFS['/download/' + fileName];
     localFS['/download'].children = localFS['/download'].children.filter(c => c !== fileName);
     gameState.money += value;
     marketLog(`Vendido: ${fileName} (+${value.toLocaleString()} CR)`, 'success');
+
     if (typeof autoAdvanceMissionsOnEvent === 'function') {
         autoAdvanceMissionsOnEvent({ type: 'sell', amount: value });
     }
-if (typeof newsOnMarketSale === 'function') {
-        newsOnMarketSale(fileName, value, file);
+
+    // Hook de sospecha — genera noticia con nombre o anónima
+    if (typeof suspicionOnSell === 'function') {
+        try { suspicionOnSell(fileName, file, sourceServerIP); } catch (e) {}
     }
+
     updateUI();
     saveGame();
     renderMarketWeb();

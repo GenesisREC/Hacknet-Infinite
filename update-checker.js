@@ -166,35 +166,37 @@ function showServerUpdateToast(remote) {
     try { if (typeof playTracePip === 'function') playTracePip(); } catch (e) {}
 
     // Listeners
+        // Listeners
     const closeBtn = toast.querySelector('#sut-close-btn');
     const reloadBtn = toast.querySelector('#sut-reload-btn');
 
     if (closeBtn) {
         closeBtn.addEventListener('click', () => {
-            // Marcar como descartada: no volver a molestar con esta versión
-            setDismissedVersion(remote.version);
             toast.remove();
+            // Reacomodar el resto
+            if (typeof _restackToasts === 'function') {
+                setTimeout(_restackToasts, 20);
+            }
         });
     }
 
     if (reloadBtn) {
         reloadBtn.addEventListener('click', () => {
-            // Marcar ANTES de recargar, para que tras el reload no vuelva a salir
-            setDismissedVersion(remote.version);
-            // Hard reload: bypass de caché
             try {
-                // Método 1: query param único (funciona en todos los navegadores)
                 const url = new URL(window.location.href);
                 url.searchParams.set('_r', Date.now().toString(36));
                 window.location.href = url.toString();
             } catch (e) {
-                // Fallback
                 window.location.reload();
             }
         });
     }
-}
 
+    // Reacomodar al aparecer
+    if (typeof _restackToasts === 'function') {
+        setTimeout(_restackToasts, 20);
+    }
+}
 // ------------------------------------------------------------
 // Arrancar / parar el checker
 // ------------------------------------------------------------

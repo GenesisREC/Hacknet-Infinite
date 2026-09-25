@@ -429,10 +429,11 @@ function finishScan() {
     lastProcessSignature = '__force__';
     output.innerHTML += `<div class="msg-box"><span class="text-success">✓ Escaneo completo. ${gameState.scanDiscoverOrder.length} nodo(s) descubierto(s):</span><br>`;
     gameState.scanDiscoverOrder.forEach(s => {
-        const traceInfo = s.hasTrace ? '<span class="text-error">[RASTREO ACTIVO]</span>' : '<span class="text-success">[SIN RASTREO]</span>';
-        const secInfo = s.hasTrace ? ` <span class="text-muted">(seg: ${Math.round(s.securityLevel*100)}%)</span>` : '';
-        output.innerHTML += `&nbsp;&nbsp;<span class="text-info">${s.ip}</span> ${traceInfo}${secInfo}<br>`;
-    });
+    const traceInfo = s.hasTrace ? '<span class="text-error">[RASTREO ACTIVO]</span>' : '<span class="text-success">[SIN RASTREO]</span>';
+    const secInfo = s.hasTrace ? ` <span class="text-muted">(seg: ${Math.round(s.securityLevel*100)}%)</span>` : '';
+    const webTag = s.isWebServer ? ' <span class="text-fire">[WEB]</span>' : '';
+    output.innerHTML += `&nbsp;&nbsp;<span class="text-info">${s.ip}</span>${webTag} ${traceInfo}${secInfo}<br>`;
+});
     output.innerHTML += `<span class="text-muted">Haz clic en un nodo del NetMap para autocompletar el connect. Arrastra el mapa para desplazarte. Rueda del ratón para zoom.</span></div>`;
     output.scrollTop = output.scrollHeight;
     soundScanComplete();

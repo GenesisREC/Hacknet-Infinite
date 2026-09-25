@@ -42,43 +42,45 @@
     </div>
 </div>
 <!-- ============================================================
-     MIGRATION OVERLAY — guardados de versiones anteriores
+     MIGRATION OVERLAY — reinicio obligatorio por incompatibilidad
      ============================================================ -->
 <div id="migration-overlay">
     <div class="migration-window">
         <div class="migration-titlebar">
-            <span>⚠ ACTUALIZACIÓN DETECTADA</span>
+            <span>⚠ ACTUALIZACIÓN INCOMPATIBLE</span>
         </div>
         <div class="migration-body">
             <div class="migration-header">
                 <div class="migration-icon">⚠</div>
-                <div class="migration-title">Tu guardado es de una versión anterior</div>
+                <div class="migration-title">Esta actualización requiere empezar de cero</div>
                 <div class="migration-version-info" id="migration-version-info">v? → v?</div>
             </div>
 
             <div class="migration-text">
-                Detectamos que tu partida fue creada con una versión previa del juego.
-                Debido a cambios en la estructura interna, <b>no se puede cargar tal cual</b>.
-                Pero podemos intentar preservar tu progreso más importante.
+                Detectamos que tu partida fue creada con una versión anterior del juego.
+                Esta actualización <b>reescribe el sistema de sospecha, el tutorial y la progresión</b>,
+                así que tu guardado viejo ya no es compatible.
+                <br><br>
+                <b>Necesitás empezar una partida nueva</b> para aprovechar todo lo nuevo.
+                Perdón por la molestia, fue por una buena razón.
             </div>
 
             <div class="migration-columns">
-                <div class="migration-col migration-col-preserve">
-                    <div class="migration-col-title">✓ SE PRESERVARÁ</div>
-                    <div id="migration-preserve-list"></div>
-                </div>
                 <div class="migration-col migration-col-lost">
-                    <div class="migration-col-title">✗ SE PERDERÁ</div>
+                    <div class="migration-col-title">✗ SE PIERDE DEFINITIVAMENTE</div>
                     <div id="migration-lost-list"></div>
+                </div>
+                <div class="migration-col migration-col-preserve" style="border-color: rgba(255,204,68,0.55);">
+                    <div class="migration-col-title" style="color:#ffcc44; border-bottom-color: rgba(255,204,68,0.35);">◆ NOVEDADES DE ESTA VERSIÓN</div>
+                    <div id="migration-highlights-list"></div>
                 </div>
             </div>
 
             <div class="migration-actions">
-                <button class="migration-btn migration-btn-primary" onclick="confirmMigration()">MIGRAR (recomendado)</button>
-                <button class="migration-btn migration-btn-secondary" onclick="declineMigration()">EMPEZAR DE CERO</button>
+                <button class="migration-btn migration-btn-secondary" onclick="declineMigration()">ENTENDIDO — EMPEZAR DE CERO</button>
             </div>
 
-            <div class="migration-hint">Tu guardado original no será borrado hasta que confirmes una opción.</div>
+            <div class="migration-hint">Al confirmar se borra tu partida anterior y se abre el setup inicial.</div>
         </div>
     </div>
 </div>
@@ -226,6 +228,23 @@
         <div class="news-toolbar-spacer"></div>
         <button class="news-btn news-btn-logout" onclick="closeNewsWeb()">[X] SALIR</button>
     </div>
+    <div class="news-suspicion-bar" id="news-suspicion-bar">
+    <div class="news-suspicion-left">
+        <span class="news-suspicion-label">OPERADOR:</span>
+        <span class="news-suspicion-user" id="news-suspicion-user">-</span>
+    </div>
+    <div class="news-suspicion-mid">
+        <span class="news-suspicion-label">SOSPECHA:</span>
+        <div class="news-suspicion-track">
+            <div class="news-suspicion-fill" id="news-suspicion-fill"></div>
+        </div>
+        <span class="news-suspicion-pct" id="news-suspicion-pct">0%</span>
+    </div>
+        <div class="news-suspicion-right">
+        <span class="news-suspicion-status" id="news-suspicion-status">BAJO PERFIL</span>
+        <span class="news-suspicion-decay" id="news-suspicion-decay" style="display:none;"></span>
+    </div>
+</div>
     <div class="news-content" id="news-web-content"></div>
 </div>
 <!-- ============================================================
@@ -300,8 +319,9 @@
 <div class="top-bar">
     <span id="conn-status">DESCONECTADO</span>
     <button class="hud-manual-btn" onclick="openTutorial()" title="Manual de usuario (F1)">MANUAL</button>
-<button id="update-badge" class="hud-update-badge" onclick="goToUpdatesFromToast()" style="display:none;">● UPDATE</button>
-<span id="trace-timer">RASTREO: --:--</span>
+    <button id="mail-badge" class="hud-mail-badge" onclick="goToMailFromBadge()" style="display:none;" title="Tenés mails sin leer">MAIL</button>
+    <button id="update-badge" class="hud-update-badge" onclick="goToUpdatesFromToast()" style="display:none;">UPDATE</button>
+    <span id="trace-timer">RASTREO: --:--</span>
 </div>
 
 <!-- ============================================================
@@ -372,7 +392,7 @@
             <div class="section-title" style="color:#33ff33; border-bottom-color:#33ff33;">HELP.exe [0 GB]</div>
             <div class="app-window" style="border-color:#33ff33; box-shadow:0 0 10px rgba(51,255,51,0.25);">
                 <div class="app-header" style="background:#33ff33;">
-                    <span id="help-step-counter">PASO 1 / 19</span>
+                    <span id="help-step-counter">PASO 1 / 25</span>
                     <span class="close-btn" onclick="closeHelpApp()">[X]</span>
                 </div>
                 <div class="app-content" style="padding:10px 12px; display:block;" id="help-content">
@@ -438,6 +458,21 @@
     <button class="update-toast-cta" onclick="goToUpdatesFromToast()">▸ VER CAMBIOS</button>
 </div>
 <!-- ============================================================
+     MAIL TOAST — Notificación de mail nuevo
+     ============================================================ -->
+<div id="mail-toast">
+    <div class="mail-toast-header">
+        <span class="mail-toast-icon">[MAIL]</span>
+        <span class="mail-toast-title">NUEVO MENSAJE</span>
+        <button class="mail-toast-close" onclick="hideMailToast()">[X]</button>
+    </div>
+    <div class="mail-toast-body">
+        <div class="mail-toast-from" id="mail-toast-from">-</div>
+        <div class="mail-toast-subject" id="mail-toast-subject">-</div>
+    </div>
+    <button class="mail-toast-cta" onclick="goToMailFromToast()">ABRIR GOMAIL</button>
+</div>
+<!-- ============================================================
      ADMIN PASSWORD MODAL — reemplazo del prompt() nativo
      ============================================================ -->
 <div id="admin-pw-overlay" style="display:none;">
@@ -461,6 +496,134 @@
     </div>
 </div>
 <!-- ============================================================
+     BRUTE FORCE DEFENSE — Minijuego de defensa
+     ============================================================ -->
+<div id="bf-overlay">
+    <div class="bf-window">
+        <div class="bf-titlebar">
+            <span>◈ DEFENSA ACTIVA :: SSH</span>
+            <span class="right">127.0.0.1:22 — BRUTE FORCE DETECTADO</span>
+        </div>
+
+        <div class="bf-body" id="bf-play-area">
+
+            <div class="bf-status">
+                <div class="stat">
+                    <span class="label">INTENTOS:</span>
+                    <span class="value danger" id="bf-attempts-count">0 / 200</span>
+                </div>
+                <div class="stat">
+                    <span class="label">VELOCIDAD:</span>
+                    <span class="value" id="bf-speed">3 / s</span>
+                </div>
+                <div class="stat">
+                    <span class="label">TIEMPO:</span>
+                    <span class="value" id="bf-eta">40.0s</span>
+                </div>
+            </div>
+
+            <div class="bf-round-bar">
+                <span class="bf-round-label">RONDA</span>
+                <div class="bf-round-dots" id="bf-round-dots"></div>
+                <span class="bf-round-info" id="bf-round-info">Sobreviví 5 rondas</span>
+            </div>
+
+            <div class="bf-layout">
+                <div class="bf-attacker">
+                    <div class="bf-panel-title">▸ ATAQUE EN CURSO</div>
+                    <div class="bf-attempts" id="bf-attempts"></div>
+                    <div class="bf-progress-wrap">
+                        <div class="bf-progress-label">
+                            <span>PROGRESO DEL ATAQUE</span>
+                            <span id="bf-progress-pct">0%</span>
+                        </div>
+                        <div class="bf-progress-track">
+                            <div class="bf-progress-fill" id="bf-progress-fill"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bf-defender">
+                    <div class="bf-panel-title">▸ DEFENSA — CAMBIAR CONTRASEÑA</div>
+                    <div class="bf-current-pass">
+                        <span class="label">TU PASS:</span>
+                        <span class="value" id="bf-current-pass">1234</span>
+                    </div>
+                    <div class="bf-input-wrap">
+                        <span class="bf-input-prompt">$</span>
+                        <input type="text" class="bf-input" id="bf-input" placeholder="nueva contraseña..." maxlength="32" autocomplete="off" spellcheck="false">
+                    </div>
+	   	<div class="bf-forbidden-panel" id="bf-forbidden-panel" style="display:none;">
+    <span class="bf-forbidden-label">LETRAS PROHIBIDAS:</span>
+    <span class="bf-forbidden-letters" id="bf-forbidden-letters"></span>
+</div>
+                    <ul class="bf-requirements" id="bf-reqs"></ul>
+                    <div class="bf-strength">
+                        <div class="bf-strength-label">
+                            <span>FUERZA</span>
+                            <span id="bf-strength-text">—</span>
+                        </div>
+                        <div class="bf-strength-track">
+                            <div class="bf-strength-fill" id="bf-strength-fill"></div>
+                        </div>
+                    </div>
+                    <div class="bf-actions">
+                        <button class="bf-btn" id="bf-apply" disabled>▸ APLICAR CAMBIO</button>
+                    </div>
+                    <div class="bf-pause-notice" id="bf-pause-notice">
+                        ▸ ATACANTE RECALCULANDO — TIEMPO GANADO
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="bf-result-screen" id="bf-result-screen">
+            <div class="bf-result-title" id="bf-result-title">—</div>
+            <div class="bf-result-subtitle" id="bf-result-subtitle">—</div>
+            <div id="bf-result-punishment-wrap"></div>
+            <div class="bf-result-actions">
+                <button class="btn-close" id="bf-btn-close">▸ CERRAR</button>
+                <button class="btn-retry" id="bf-btn-retry">▸ REINTENTAR</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ============================================================
+     RAID SEQUENCE — Allanamiento al 100% de sospecha
+     ============================================================ -->
+<div id="raid-overlay">
+    <div class="raid-screen">
+        <div class="raid-glitch-layer"></div>
+        <div class="raid-content">
+            <div class="raid-alert">⚠ ALLANAMIENTO EN CURSO ⚠</div>
+            <div class="raid-subtitle">Unidad de Cibercrimen en tu ubicación</div>
+            <div class="raid-log" id="raid-log"></div>
+            <div class="raid-countdown">
+                <span class="raid-countdown-label">SEGUNDOS PARA EL SECUESTRO:</span>
+                <span class="raid-countdown-value" id="raid-countdown-value">15</span>
+            </div>
+        </div>
+    </div>
+</div>
+<!-- ============================================================
+     WEB VIEWER — Sitios web procedurales
+     ============================================================ -->
+<div id="web-viewer-overlay">
+    <div class="browser-bar">
+        <span class="lock">[S]</span>
+        <span class="url" id="web-viewer-url">https://ejemplo.com</span>
+        <span class="web-viewer-tag" id="web-viewer-tag">SITIO PÚBLICO</span>
+    </div>
+    <div class="web-viewer-toolbar">
+        <div class="web-viewer-brand">SITIO WEB PÚBLICO</div>
+        <div class="web-viewer-spacer"></div>
+        <button class="web-viewer-btn web-viewer-btn-terminal" onclick="openTerminalFromWeb()">▸ ABRIR TERMINAL</button>
+        <button class="web-viewer-btn web-viewer-btn-close" onclick="closeWebViewer()">[X] DESCONECTAR</button>
+    </div>
+    <div class="web-viewer-content" id="web-viewer-content"></div>
+</div>
+<!-- ============================================================
      SCRIPTS — ORDEN IMPORTANTE
      ============================================================ -->
 <script src="config.js"></script>
@@ -469,6 +632,9 @@
 <script src="news.js"></script> 
 <script src="reviews.js"></script>
 <script src="data.js"></script> 
+<script src="webs.js"></script>
+<script src="suspicion.js"></script>
+<script src="bruteforce.js"></script>
 <script src="state.js"></script>
 <script src="animations.js"></script>
 <script src="wallbreaker.js"></script>

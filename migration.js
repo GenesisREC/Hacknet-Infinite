@@ -92,7 +92,7 @@ function extractPreservables(oldSave) {
 // OVERLAY
 // ------------------------------------------------------------
 function showMigrationOverlay(oldSave, oldVersion, oldKey) {
- closeAllOverlays(); 
+    closeAllOverlays();
     pendingMigrationSave    = oldSave;
     pendingMigrationKey     = oldKey;
     pendingMigrationVersion = oldVersion;
@@ -101,48 +101,35 @@ function showMigrationOverlay(oldSave, oldVersion, oldKey) {
     if (!overlay) return;
 
     const info = SAVE_VERSION_INFO[SAVE_VERSION] || { release: 'v' + SAVE_VERSION };
-    const p = extractPreservables(oldSave);
 
     // Cabecera
     document.getElementById('migration-version-info').textContent =
         `Guardado v${oldVersion} → v${SAVE_VERSION}  (${info.release})`;
 
-    // Lista de preservables
-    const items = [];
-    if (p.identity) items.push(`Usuario: <b>${p.identity.user}</b>`);
-    if (p.accounts.gomail) items.push(`GoMail: <b>${p.accounts.gomail.username}@gomail.com</b>`);
-    if (p.accounts.hacknet) items.push(`HackNet: <b>${p.accounts.hacknet.username}</b>`);
-    if (p.accounts.market) items.push(`InfoMarket: <b>${p.accounts.market.username}</b>`);
-    if (p.tools && p.tools.length) {
-        const tl = p.tools.map(t => `${t.name} v${t.v.toFixed(1)}`).join(', ');
-        items.push(`Herramientas: <b>${tl}</b>`);
-    }
-    if (p.money > 0) items.push(`Créditos: <b>${p.money.toLocaleString()} CR</b>`);
-    if (p.hardware && (p.hardware.cpu.level > 0 || p.hardware.antenna.level > 0)) {
-        items.push(`Hardware: CPU nv ${p.hardware.cpu.level}, Antena nv ${p.hardware.antenna.level}`);
-    }
-    if (p.pinnedServers.length > 0) {
-        items.push(`${p.pinnedServers.length} servidor(es) fijado(s) en NetMap`);
-    }
-    if (p.wallbreakerObtained) items.push('wallbreaker.exe desbloqueado');
-
-    const listEl = document.getElementById('migration-preserve-list');
-    if (items.length === 0) {
-        listEl.innerHTML = '<div class="migration-empty">No se detectó nada para preservar.</div>';
-    } else {
-        listEl.innerHTML = '<ul>' + items.map(i => `<li>${i}</li>`).join('') + '</ul>';
-    }
-
-    // Lista de pérdidas (regeneración procedural)
+    // Lista de lo que se pierde (todo, porque no preservamos nada)
     const lost = [
-        'Servidores descubiertos (se regeneran)',
-        'Archivos descargados en /download',
-        'Misiones activas y completadas',
-        'Bandeja de entrada de GoMail',
-        'Rastreo o quick-trace pendiente'
+        'Usuario y contraseña local',
+        'Cuentas de GoMail, HackNet e InfoMarket',
+        'Herramientas (crackers) y wallbreaker',
+        'Créditos acumulados',
+        'Hardware y upgrades (RAM, CPU, antena)',
+        'Servidores descubiertos y pines del NetMap',
+        'Misiones activas, completadas y en bandeja de GoMail',
+        'Progreso del tutorial',
+        'Sospecha y nivel de exposición'
     ];
     document.getElementById('migration-lost-list').innerHTML =
         '<ul>' + lost.map(i => `<li>${i}</li>`).join('') + '</ul>';
+
+    // Lista de novedades de esta versión
+    const highlights = (info.highlights && info.highlights.length > 0)
+        ? info.highlights
+        : ['Actualización mayor con cambios estructurales'];
+    document.getElementById('migration-highlights-list').innerHTML =
+        '<ul style="list-style:none; padding:0; margin:0; font-size:0.82rem; line-height:1.55; color:#ffe7a0;">' +
+        highlights.map(h => `<li style="padding:3px 0 3px 16px; position:relative;">
+            <span style="position:absolute; left:0; color:#ffcc44; font-weight:bold;">◆</span>${h}
+        </li>`).join('') + '</ul>';
 
     overlay.style.display = 'flex';
 }

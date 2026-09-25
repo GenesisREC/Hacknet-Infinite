@@ -603,6 +603,7 @@ function openGomailWeb() {
         gameState.gomailAccount ? '@' + gameState.gomailAccount.username : '-';
 
     renderGomailWeb();
+    if (typeof updateMailBadge === 'function') updateMailBadge();
     updateUI();
 }
 
@@ -614,6 +615,7 @@ function closeGomailWeb() {
     gameState.currentIP = null;
     gameState.currentServer = null;
 
+    if (typeof updateMailBadge === 'function') updateMailBadge();
     output.innerHTML += `<span class="text-warning">Sesión de GoMail cerrada.</span><br>`;
     output.scrollTop = output.scrollHeight;
     updateUI();
@@ -645,16 +647,24 @@ function renderGomailWeb(view) {
                 No tenés mensajes todavía.
                 <br><span style="opacity:0.7; font-size:0.85em;">Acá van a llegar los mails de HackNet.</span>
             </div>`;
-        } else {
+                } else {
             inbox.forEach(m => {
                 const unreadCls = m.read ? '' : ' webmail-row-unread';
-                html += `<div class="webmail-row${unreadCls}" onclick="openGomailEmail('${m.id}')">
+                const isProtected = isGomailMailProtected(m);
+                const protectedCls = isProtected ? ' webmail-row-protected' : '';
+                const protectedTitle = isProtected
+                    ? 'Vinculado a misión activa — no se puede borrar'
+                    : 'Borrar este mail';
+                html += `<div class="webmail-row${unreadCls}${protectedCls}" data-mail-id="${m.id}" onclick="openGomailEmail('${m.id}')">
                     <div class="webmail-row-left">${m.read ? '📧' : '✉'}</div>
                     <div class="webmail-row-mid">
                         <div class="webmail-row-from">${m.from}</div>
                         <div class="webmail-row-subject">${m.subject}</div>
                     </div>
                     <div class="webmail-row-time">${m.time}</div>
+                    <button class="webmail-row-del"
+                            onclick="event.stopPropagation(); deleteGomailMail('${m.id}');"
+                            title="${protectedTitle}">×</button>
                 </div>`;
             });
         }
@@ -670,6 +680,7 @@ function renderGomailWeb(view) {
             return;
         }
         m.read = true;
+        if (typeof updateMailBadge === 'function') updateMailBadge();
 
         const myUser = gameState.gomailAccount ? gameState.gomailAccount.username : 'user';
         content.innerHTML = `<div class="webmail-email">
@@ -966,3 +977,219 @@ function revealHUDProgressive(onComplete) {
         }, 300);                   // pausa antes de mostrar right
     }, 800);                       // top-bar: 800ms con spinner
 }
+// ============================================================
+// NOTIFICACIONES DE MAIL
+// ============================================================
+let _mailToastTimer = null;
+
+function notifyNewMail(mail) {
+    // Actualizar badge
+    updateMailBadge();
+
+    // Si ya está mirando GoMail, no spamear con toast
+    if (gameState.inGomail) return;
+
+    // Sonido
+    try { if (typeof soundNewMail === 'function') soundNewMail(); } catch (e) {}
+
+    // Toast
+    showMailToast(mail);
+}
+
+function showMailToast(mail) {
+    const toast = document.getElementById('mail-toast');
+    if (!toast) return;
+
+    const fromEl = document.getElementById('mail-toast-from');
+    const subjEl = document.getElementById('mail-toast-subject');
+    if (fromEl) fromEl.textContent = 'De: ' + (mail.from || 'desconocido');
+    if (subjEl) subjEl.textContent = mail.subject || '(sin asunto)';
+
+    // Reset animación si ya estaba abierto
+    toast.classList.remove('mail-toast-closing');
+    toast.style.display = 'flex';
+    // Forzar reflow para reiniciar la animación de entrada
+    void toast.offsetWidth;
+
+    // Auto-cerrar a los 8 segundos
+    clearTimeout(_mailToastTimer);
+    _mailToastTimer = setTimeout(() => {
+        hideMailToast();
+    }, 8000);
+   setTimeout(_restackToasts, 10);
+}
+
+function hideMailToast() {
+    const toast = document.getElementById('mail-toast');
+    if (!toast || toast.style.display === 'none') return;
+    clearTimeout(_mailToastTimer);
+    toast.classList.add('mail-toast-closing');
+    setTimeout(() => {
+        toast.style.display = 'none';
+        toast.classList.remove('mail-toast-closing');
+        setTimeout(_restackToasts, 20);
+    }, 250);
+}
+
+function goToMailFromToast() {
+    hideMailToast();
+    goToMail();
+}
+
+function goToMailFromBadge() {
+    hideMailToast();
+    goToMail();
+}
+
+function goToMail() {
+    if (gameState.inGomail) return;
+
+    // Cerrar overlays que puedan chocar
+    try {
+        if (gameState.inMarket && typeof closeMarketWeb === 'function') closeMarketWeb();
+        if (gameState.inHacknet && typeof exitHacknet === 'function') exitHacknet();
+        if (gameState.inNews && typeof closeNewsWeb === 'function') closeNewsWeb();
+        if (gameState.connectOverlayOpen && typeof closeConnectOverlay === 'function') closeConnectOverlay(true);
+        if (gameState.wallbreakerApp && gameState.wallbreakerApp.open && typeof closeWallbreakerApp === 'function') closeWallbreakerApp(true);
+    } catch (e) {}
+
+    // Abrir GoMail (el form decide login/register según si hay cuenta)
+    if (typeof openGomailForm === 'function') {
+        openGomailForm();
+    }
+}
+
+function updateMailBadge() {
+    const badge = document.getElementById('mail-badge');
+    if (!badge) return;
+
+    const unread = (gameState.gomailInbox || []).filter(m => !m.read).length;
+    if (unread > 0 && gameState.gomailAccount) {
+        badge.textContent = unread + ' MAIL';
+        badge.style.display = 'inline-flex';
+    } else {
+        badge.style.display = 'none';
+    }
+}
+
+// ============================================================
+// APILADO DE TOASTS — evita que se solapen abajo a la derecha
+// ============================================================
+function _restackToasts() {
+    const mailToast         = document.getElementById('mail-toast');
+    const updateToast       = document.getElementById('update-toast');
+    const serverUpdateToast = document.getElementById('server-update-toast');
+
+    const BASE = 24;
+    const GAP = 12;
+    const RIGHT = 24;
+
+    const mailVisible = mailToast &&
+                        mailToast.style.display === 'flex' &&
+                        !mailToast.classList.contains('mail-toast-closing');
+    const updateVisible = updateToast && updateToast.style.display === 'flex';
+    const serverUpdateVisible = !!serverUpdateToast;
+
+    // Alineamos todos al mismo right
+    if (mailToast)         mailToast.style.right = RIGHT + 'px';
+    if (updateToast)       updateToast.style.right = RIGHT + 'px';
+    if (serverUpdateToast) serverUpdateToast.style.right = RIGHT + 'px';
+
+    // Stack desde abajo hacia arriba: server-update → update → mail
+    let cursor = BASE;
+
+    if (serverUpdateVisible) {
+        serverUpdateToast.style.bottom = cursor + 'px';
+        cursor += (serverUpdateToast.offsetHeight || 200) + GAP;
+    }
+
+    if (updateVisible) {
+        updateToast.style.bottom = cursor + 'px';
+        cursor += (updateToast.offsetHeight || 180) + GAP;
+    }
+
+    if (mailVisible) {
+        mailToast.style.bottom = cursor + 'px';
+    }
+}
+window._restackToasts = _restackToasts;
+
+// ============================================================
+// BORRADO DE MAILS — protección de mails importantes
+// ============================================================
+
+// Un mail es "protegido" si está vinculado a una misión activa
+// que todavía no fue reclamada.
+function isGomailMailProtected(mail) {
+    if (!mail || !mail.missionId) return false;
+    const active = (gameState.missionsActive || []).find(m => m.id === mail.missionId);
+    return !!active; // protegido si la misión sigue activa
+}
+
+// Intenta borrar un mail del inbox
+function deleteGomailMail(mailId) {
+    const mail = (gameState.gomailInbox || []).find(m => m.id === mailId);
+    if (!mail) return;
+
+    if (isGomailMailProtected(mail)) {
+        // No se puede borrar → avisar
+        _showGomailWarning('Este mail está vinculado a una misión activa. No se puede borrar hasta que la completes y reclames la recompensa.');
+        const row = document.querySelector(`.webmail-row[data-mail-id="${mailId}"]`);
+        if (row) {
+            row.classList.add('webmail-row-shake');
+            setTimeout(() => row.classList.remove('webmail-row-shake'), 450);
+        }
+        try { if (typeof soundError === 'function') soundError(); } catch (e) {}
+        return;
+    }
+
+    // Borrado normal
+    gameState.gomailInbox = gameState.gomailInbox.filter(m => m.id !== mailId);
+    try { if (typeof soundSuccess === 'function') soundSuccess(); } catch (e) {}
+    if (typeof updateMailBadge === 'function') updateMailBadge();
+    try { if (typeof saveGame === 'function') saveGame(); } catch (e) {}
+
+    // Re-renderizar
+    renderGomailWeb();
+}
+
+// Banner de advertencia temporal
+function _showGomailWarning(text) {
+    const overlay = document.getElementById('gomail-web-overlay');
+    if (!overlay) return;
+
+    let warn = document.getElementById('gomail-warning');
+    if (!warn) {
+        warn = document.createElement('div');
+        warn.id = 'gomail-warning';
+        // Insertar después del toolbar, antes del content
+        const toolbar = overlay.querySelector('.webmail-toolbar');
+        if (toolbar && toolbar.parentNode) {
+            toolbar.parentNode.insertBefore(warn, toolbar.nextSibling);
+        } else {
+            overlay.appendChild(warn);
+        }
+    }
+
+    warn.textContent = text;
+    warn.classList.remove('gomail-warning-visible');
+    void warn.offsetWidth; // reiniciar animación
+    warn.classList.add('gomail-warning-visible');
+
+    clearTimeout(warn._hideTimer);
+    warn._hideTimer = setTimeout(() => {
+        warn.classList.remove('gomail-warning-visible');
+    }, 3500);
+}
+
+// Exports
+window.isGomailMailProtected = isGomailMailProtected;
+window.deleteGomailMail = deleteGomailMail;
+
+// Exports
+window.notifyNewMail = notifyNewMail;
+window.showMailToast = showMailToast;
+window.hideMailToast = hideMailToast;
+window.goToMailFromToast = goToMailFromToast;
+window.goToMailFromBadge = goToMailFromBadge;
+window.updateMailBadge = updateMailBadge;

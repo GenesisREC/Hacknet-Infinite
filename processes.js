@@ -340,6 +340,11 @@ function updateUI() {
 
     renderProcesses();
 
+     // Sincronizar badge de mail
+    if (typeof updateMailBadge === 'function') {
+        try { updateMailBadge(); } catch (e) {}
+    }
+    
     // Sincronizar Explorer si está abierto
     if (typeof Explorer !== 'undefined' && Explorer.open && typeof renderExplorer === 'function') {
         try { renderExplorer(); } catch (e) {}
@@ -832,11 +837,36 @@ async function animatePortHack(proc, server) {
 
 function launchTool(tool, portObj, portNum) {
     try {
-        gameState.ram = calculateRamUsage();
+        // ---- Guard 1: tool válida ----
+        if (!tool || !tool.name) {
+            output.innerHTML += `<span class="text-error">[✗] Herramienta inválida.</span><br>`;
+            output.scrollTop = output.scrollHeight;
+            return false;
+        }
 
+        // ---- Guard 2: la tool tiene que estar en /bin ----
+        const inBin = localFS['/bin'] &&
+                      Array.isArray(localFS['/bin'].children) &&
+                      localFS['/bin'].children.includes(tool.name);
+        if (!inBin) {
+            output.innerHTML += `<span class="text-error">[✗] ${tool.name} no está en /bin.</span><br>`;
+            output.scrollTop = output.scrollHeight;
+            return false;
+        }
+
+        // ---- Guard 3: si hay portObj, hay que estar conectado ----
+        if (portObj && (!gameState.isConnected || !gameState.currentServer)) {
+            output.innerHTML += `<span class="text-error">[✗] No estás conectado a ningún server.</span><br>`;
+            output.scrollTop = output.scrollHeight;
+            return false;
+        }
+
+        // ---- Guard 4: RAM (excepto last-chance, que es más permisivo) ----
+        gameState.ram = calculateRamUsage();
         if (gameState.gamePhase !== 'last-chance') {
             if (gameState.ram + tool.ram > gameState.maxRam) {
-                output.innerHTML += `<span class="text-error">Error: RAM insuficiente.</span><br>`;
+                const libre = Math.max(0, gameState.maxRam - gameState.ram).toFixed(1);
+                output.innerHTML += `<span class="text-error">Error: RAM insuficiente (necesita ${tool.ram.toFixed(1)} GB, libres ${libre} GB).</span><br>`;
                 output.scrollTop = output.scrollHeight;
                 return false;
             }
